@@ -1,0 +1,9 @@
+server:
+  port: 9999
+  timeout: 120
+  timerInterval: 5
+eventLoopThreadPool:
+  threadNum: 4
+log:
+  open: true
+  formatter: "%Y-%m-%d %H:%M:%S"
