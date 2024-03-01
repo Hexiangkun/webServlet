@@ -14,20 +14,20 @@ int main()
 //    conn->ExecuteNonQuery(sql);
 
     const char *name = "Rose";
-    int age = 24;
-    double weigh = 68.4;
-    conn->ExecuteNonQuery("insert into person(name,age,weight) values(?,?,?)", name, age, weigh);
+    const char* pass = "24";
 
-    int minage = 20;
-    std::string nm;
-    double wg;
-
-    MySqlDataReader *rd = conn->ExecuteReader("select name,weight from person where age > ?", minage);
-    while (rd->Read())
-    {
-        rd->GetValues(nm, wg);
-        std::cout << nm << " " << wg << std::endl;
-    }
-    delete rd;
+    auto it = conn->ExecuteNonQuery("insert into user(username,passwd) values(?,?)", name, pass);
+    std::cout << it << std::endl;
+//    int minage = 20;
+//    std::string nm;
+//    double wg;
+//
+//    MySqlDataReader *rd = conn->ExecuteReader("select name,weight from person where age > ?", minage);
+//    while (rd->Read())
+//    {
+//        rd->GetValues(nm, wg);
+//        std::cout << nm << " " << wg << std::endl;
+//    }
+//    delete rd;
     return 0;
 }

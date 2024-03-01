@@ -83,6 +83,7 @@ namespace Tiny_muduo::Http
         nlohmann::json getJson() const { return json_; }
 
         const HttpForm& getForm() const { return form_; }
+        const HttpMultiPart& getMultiPart() const { return multipart_; }
 
     private:
         RET_STATE parseRequestLine();

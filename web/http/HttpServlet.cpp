@@ -20,34 +20,7 @@ namespace Tiny_muduo::Http
 
     ServletDispatcher::ServletDispatcher() {
         _defaultServlet = std::make_shared<HttpServlet>([&](const HttpRequest& req, HttpResponse* resp){
-            auto code = resp->getStatusCode();
 
-            if(code >= 400) {
-                resp->setContentType(HttpContentType::HTML);
-                switch (code) {
-                    case BAD_REQUEST:
-                        resp->setHtmlBody("400.html");
-                        break;
-                    case UNAUTHORIZED:
-                        resp->setHtmlBody("401.html");
-                        break;
-                    case FORBIDDEN:
-                        resp->setHtmlBody("403.html");
-                        break;
-                    case NOT_FOUND:
-                        resp->setHtmlBody("404.html");
-                        break;
-                    case METHOD_NOT_ALLOWED:
-                        resp->setHtmlBody("405.html");
-                        break;
-                    case RANGE_NOT_SATISFIABLE:
-                        resp->setHtmlBody("416.html");
-                    default:
-                        resp->appendBody(HttpServlet::basePage(code));
-                        break;
-                }
-                return ;
-            }
 
             auto url = req.getUrl();
             std::string path(url.getPath());

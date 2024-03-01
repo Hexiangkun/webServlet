@@ -7,26 +7,28 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include "http/util/HttpMap.h"
 
 namespace Tiny_muduo::Http
 {
-    struct Part
-    {
-        std::string name;
-        std::string file_name;
-        std::string file_type;
-        std::string data;
 
-        Part() = default;
-        Part(std::string name, std::string fn, std::string ft, std::string data)
-                : name(std::move(name)), file_name(std::move(fn)),
-                  file_type(std::move(ft)), data(std::move(data)) {}
-    };
     class HttpMultiPart
     {
     public:
-        typedef HttpBaseMap<std::string, std::vector<Part>> Files;
+        struct Part
+        {
+            std::string name;
+            std::string file_name;
+            std::string file_type;
+            std::string data;
+
+            Part() = default;
+            Part(std::string name, std::string fn, std::string ft, std::string data)
+                    : name(std::move(name)), file_name(std::move(fn)),
+                      file_type(std::move(ft)), data(std::move(data)) {}
+        };
+        typedef HttpBaseMap<std::string, std::vector<std::shared_ptr<Part>>> Files;
         typedef HttpBaseMap<std::string, std::string> Form;
 
         void setBoundary(const std::string &boundary) noexcept { _boundary = boundary; }
@@ -34,7 +36,7 @@ namespace Tiny_muduo::Http
 
         ReturnOption<std::string> getValue(const std::string &name) const;
 
-        Part *getFile(const std::string &name, size_t index = 0) const;
+        std::shared_ptr<Part> getFile(const std::string &name, size_t index = 0) const;
 
         void parse(std::string_view body);
 

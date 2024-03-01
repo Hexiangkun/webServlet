@@ -12,14 +12,16 @@ namespace Tiny_muduo::Http
         return _form.get(name);
     }
 
-    Part *HttpMultiPart::getFile(const std::string &name, size_t index) const {
-        Part* p = nullptr;
+    std::shared_ptr<HttpMultiPart::Part> HttpMultiPart::getFile(const std::string &name, size_t index) const {
+        std::shared_ptr<Part> p = nullptr;
         auto it = _files.get(name);
         if(it.exist()) {
             if(index >= it.value().size()) {
                 return p;
             }
-            p =&(it.value().at(index));
+//           auto tmp = it.value()[index];
+//            p = new HttpMultiPart::Part(tmp.name, tmp.file_name, tmp.file_type, tmp.data);
+            p = it.value()[index];
         }
         return p;
     }
@@ -217,10 +219,12 @@ PNG ... content of chrome.png ...
                     else {
                         auto x = _files.get(name);
                         if(x.exist()) {
-                            x.value().emplace_back(std::move(name), std::move(filename), std::move(type), std::move(form_file_data));
+                            std::shared_ptr<Part> part = std::make_shared<Part>(std::move(name), std::move(filename), std::move(type), std::move(form_file_data));
+                            x.value().emplace_back(part);
                         }
                         else {
-                            _files.add(name, std::move(std::vector{Part(name, filename, type, form_file_data)}));
+                            std::shared_ptr<Part> part = std::make_shared<Part>(name, filename, type, std::move(form_file_data));
+                            _files.add(name, std::vector{part});
                         }
                     }
 

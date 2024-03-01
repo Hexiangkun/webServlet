@@ -60,7 +60,7 @@ namespace Tiny_muduo::Http
     }
 
     void HttpResponse::setHtmlBody(const std::string &filepath) {
-        header_.add("Content-Type", "text/html; charset=utf-8");
+        header_.setContentType(HttpContentType2Str.at(HttpContentType::HTML));
         setFileBody(BASE_ROOT+filepath);
     }
 

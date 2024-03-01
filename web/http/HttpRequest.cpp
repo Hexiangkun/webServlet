@@ -245,6 +245,12 @@ namespace Tiny_muduo::Http
 
         if(hasContentType_){
             if(contentType_ == HttpContentType::MULTIPART){
+                std::string content_type = header_.getContentType().value();
+                std::string find_str = "boundary=";
+                std::size_t idx = content_type.find(find_str);
+                if (idx == std::string::npos) return BAD_REQUEST; // 没找到boundary信息 报文有误
+                std::string boundary(content_type.begin() + idx + find_str.size(), content_type.end());
+                multipart_.setBoundary(boundary);
                 std::string eob = "--" + multipart_.getBoundary() + "--\r\n";
                 // equal to end_with
                 if (body_.size() > eob.size() &&
