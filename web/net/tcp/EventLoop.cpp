@@ -81,6 +81,7 @@ namespace Tiny_muduo::net
         LOG_DEBUG << "EventLoop " << this << " of thread " << _threadId
                   << " destructs in thread " << CurrentThread::tid();
 #endif
+        assert(!_looping);
         _weakUpChannel->disableAll();
         _weakUpChannel->removeChannel();
 
@@ -99,11 +100,6 @@ namespace Tiny_muduo::net
         while (!_quit) {
             _activeChannels.clear();
             _pollReturnTime = _epoller->poll(kPollTimeMs, &_activeChannels);
-
-            if (log::Logger::get_logLevel() <= log::LogLevel::INFO)
-            {
-                printActiveChannels();
-            }
 
             _eventHandling = true;
             for(Channel* channel : _activeChannels) {
@@ -168,7 +164,12 @@ namespace Tiny_muduo::net
         }
     }
 
-    // 把cb放入队列中 唤醒loop所在的线程执行cb
+/**
+ * 在它的IO线程内执行某个用户 任务回调，即EventLoop::runInLoop(const Functor& cb)
+ * 其中Functor是 std::function<void()>。如果用户在当前IO线程调用这个函数,
+ * 回调会同步进行；如果用户在其他线程调用runInLoop()，cb会被加入队列，
+ * IO 线程会被唤醒来调用这个Functor
+ */
     void EventLoop::queueInLoop(EventLoop::TaskFunc task) {
         {
             std::unique_lock<std::mutex> lock(_mutex);
@@ -242,9 +243,6 @@ namespace Tiny_muduo::net
         _timerQueue->cancel(timerId);
     }
 
-    void EventLoop::adjust(Tiny_muduo::net::TimerId timerId , TimeStamp now) {
-        _timerQueue->adjust(timerId, now);
-    }
 
     void EventLoop::doPendingTask() {
         std::vector<TaskFunc > funcs;

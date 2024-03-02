@@ -3,6 +3,7 @@
 //
 
 #include <functional>
+#include <sys/sendfile.h>
 #include "net/tcp/TcpConnection.h"
 #include "net/tcp/Socket.h"
 #include "net/tcp/Channel.h"
@@ -52,7 +53,9 @@ namespace Tiny_muduo::net
                                  _inputBuffer(std::make_shared<Buffer>()),
                                  _outputBuffer(std::make_shared<Buffer>()),
                                  _localAddr(localAddr), _peerAddr(peerAddr),
-                                 _highWaterMark(64 * 1024 * 1024) // 64M 避免发送太快对方接受太慢
+                                 _highWaterMark(64 * 1024 * 1024), // 64M 避免发送太快对方接受太慢
+                                 _sendFd(-1),
+                                 _sendLen(0)
     {
         _channel->setReadCallback(std::bind(&TcpConnection::handleRead, this, std::placeholders::_1));
         _channel->setWriteCallback(std::bind(&TcpConnection::handleWrite, this));
@@ -62,7 +65,6 @@ namespace Tiny_muduo::net
         LOG_INFO << "TcpConnection::ctor[" << _name.c_str() << "] at fd =" << sockfd;
 #endif
         _socket->setKeepAlive(true);
-
     }
 
     TcpConnection::~TcpConnection()
@@ -80,8 +82,8 @@ namespace Tiny_muduo::net
             }
             else {
                 // 遇到重载函数的绑定，可以使用函数指针来指定确切的函数
-                void(TcpConnection::*fp)(const void* data, size_t len) = &TcpConnection::sendInLoop;
-                _loop->runInLoop(std::bind(fp, this, buf.c_str(), buf.size()));
+                void(TcpConnection::*fp)(const std::string &message) = &TcpConnection::sendInLoop;
+                _loop->runInLoop(std::bind(fp, this, buf));
             }
         }
     }
@@ -95,6 +97,52 @@ namespace Tiny_muduo::net
             else {
                 void(TcpConnection::*fp)(const std::string& message) = &TcpConnection::send;
                 _loop->runInLoop(std::bind(fp, this, buf->retrieveAllToStr()));
+            }
+        }
+    }
+
+    void TcpConnection::sendFile(const int fd, const size_t count) {
+        if(_state == kConnected) {
+            _sendFd = fd;
+            _sendLen = count;
+            if(_loop->isInLoopThread()) {
+                sendFileInLoop();
+            }
+            else {
+                _loop->runInLoop(std::bind(&TcpConnection::sendFileInLoop, this));
+            }
+        }
+    }
+
+
+    void TcpConnection::sendFileInLoop() {
+        _loop->assertInLoopThread();
+        ssize_t nwrote = 0;
+        bool faultError = false;
+
+        if(_state == kDisconnected) {
+            return ;
+        }
+        if(!_channel->isWriting() && _outputBuffer->readableBytes() == 0) {
+            nwrote = ::sendfile(_socket->sockfd(), _sendFd, nullptr, _sendLen);
+            if(nwrote >= 0) {
+                _sendLen -= static_cast<size_t>(nwrote);
+                if(_sendLen == 0) {
+                    ::close(_sendFd);
+                }
+            }
+            else {
+                nwrote = 0;
+                if(errno != EWOULDBLOCK) {
+                    if(errno == EPIPE || errno == ECONNRESET) {
+                        faultError = true;
+                    }
+                }
+            }
+        }
+        if(!faultError && _sendLen > 0) {
+            if(!_channel->isWriting()) {
+                _channel->enableWriting();
             }
         }
     }
@@ -175,6 +223,22 @@ namespace Tiny_muduo::net
      * 其实该函数就是把TCP可读缓冲区的数据读入到inputBuffer_中，以腾出TCP可读缓冲区，
      * 避免反复触发EPOLLIN事件（可读事件），同时执行用户自定义的消息到来时候的回调函数
      * */
+    /*
+    一是使用了scatter/gather IO（DMA 链表式传输），并且一部分缓冲区取自stack，这样输入缓冲区足够大，
+    通常一次readv(2)调用就能取完全部数据。
+    由于输入缓冲区足够大，也节省了一次 ioctl(socketFd, FIONREAD, &length)系统调用，
+    不必事先知道有多少数据可读而提前预留（reserve()）Buffer的capacity()，
+    可以在一次读取之后 将extrabuf中的数据append()给Buffer。
+
+    二是Buffer::readFd()只调用一次read(2)，而没有反复调用read(2)直到其返回EAGAIN。
+    首先，这么做是正确的，因为muduo采用level trigger，这么做不会丢失数据或消息。
+    其次，对追求低延迟的程序来说，这么做是高效的，因为每次读数据只需要一次系统调用。
+    再次，这样做照顾了多个连接的公平性，不会因为某个连接上数据量过大而影响 其他连接处理消息。
+    假如muduo采用edge trigger，那么每次handleRead()至少调用两次 read(2)，
+    平均起来比level trigger多一次系统调用，edge trigger不见得更高效。
+    将来的一个改进措施是：
+       如果n == writable＋sizeof extrabuf，就再读一次
+    */
     void TcpConnection::handleRead(Tiny_muduo::TimeStamp receiveTime) {
         int saveErrno = 0;
         ssize_t n = _inputBuffer->readFd(_channel->fd(), &saveErrno);
@@ -182,7 +246,7 @@ namespace Tiny_muduo::net
             // 已建立连接的用户，有可读事件发生，调用用户传入的回调操作
             _messageCallback(shared_from_this(), _inputBuffer.get(), receiveTime);
         }
-        else if(n == 0) {
+        else if(n == 0) {//读出长度为0，说明链接断开
             handleClose();
         }
         else {
@@ -196,27 +260,55 @@ namespace Tiny_muduo::net
         _loop->assertInLoopThread();
         if(_channel->isWriting()) {
             int saveErrno = 0;
-            ssize_t n = sockops::write(_channel->fd(), _outputBuffer->peek(), _outputBuffer->readableBytes());
+            if(_outputBuffer->readableBytes()) {
+                ssize_t n = sockops::write(_channel->fd(), _outputBuffer->peek(), _outputBuffer->readableBytes());
 
-            if(n > 0) {
-                _outputBuffer->retrieve(static_cast<size_t>(n));
-                // 说明buffer可读数据都被TcpConnection读取完毕并写入给了客户端
-                // 此时就可以关闭连接，否则还需继续提醒写事件
-                if(_outputBuffer->readableBytes() == 0) {
+                if(n > 0) {
+                    _outputBuffer->retrieve(static_cast<size_t>(n));
+                    // 说明buffer可读数据都被TcpConnection读取完毕并写入给了客户端
+                    // 此时就可以关闭连接，否则还需继续提醒写事件
+                    if(_outputBuffer->readableBytes() == 0 && _sendLen == 0) {
+                        // 一旦发送完毕，立刻停止观察writable事件，避免busy loop
+                        _channel->disableWriting();
 
-                    _channel->disableWriting();
+                        if(_writeCompleteCallback) {
+                            _loop->queueInLoop(std::bind(_writeCompleteCallback, shared_from_this()));
+                        }
 
-                    if(_writeCompleteCallback) {
-                        _loop->queueInLoop(std::bind(_writeCompleteCallback, shared_from_this()));
+                        if(_state == kDisconnecting) {  // 该状态表示连接需要关闭，但是还未写完数据，因此写端在此关闭
+                            shutdownInLoop();
+                        }
                     }
-
-                    if(_state == kDisconnecting) {
-                        shutdownInLoop();
-                    }
+                }
+                else {
+                    LOG_ERROR << "TcpConnection::handleWrite() failed";
                 }
             }
             else {
-                LOG_ERROR << "TcpConnection::handleWrite() failed";
+                ssize_t n = ::sendfile(_socket->sockfd(), _sendFd, nullptr, _sendLen);
+                if (n > 0)
+                {
+                    _sendLen -= static_cast<size_t>(n);
+                    if (_sendLen == 0)
+                    {
+                        _channel->disableWriting();
+                        ::close(_sendFd);
+                        _sendFd = -1;
+                        if (_state == kDisconnecting)
+                        {
+                            shutdownInLoop();
+                        }
+                    }
+                }
+                else
+                {
+                    LOG_ERROR << "TcpConnection::handleWrite send file len = "
+                               << n << " remain len = " << _sendLen;
+                    ::close(_sendFd);
+                    _sendFd = -1;
+                    _sendLen = 0;
+                    _channel->disableWriting();
+                }
             }
         }
         else {          // state_不为写状态

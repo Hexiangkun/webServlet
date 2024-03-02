@@ -32,6 +32,7 @@ namespace Tiny_muduo::net
     Channel::~Channel() {
         assert(!_eventHandling);
         assert(!_addedToLoop);
+
     }
 
     //fd得到epoll通知后，处理事件

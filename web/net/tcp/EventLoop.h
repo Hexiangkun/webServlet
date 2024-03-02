@@ -32,9 +32,11 @@ namespace Tiny_muduo
             using _wptr = std::weak_ptr<EventLoop>;
             using TaskFunc = std::function<void()>;
         public:
+            //每个线程只能有一个EventLoop对象
             EventLoop();
             ~EventLoop();
 
+            //EventLoop的对象生命周期通常和所属IO线程一样长，不必是堆上的对象
             void loop();                        //开启事件循环
             void quit();                        //退出事件循环
 
@@ -49,12 +51,15 @@ namespace Tiny_muduo
             void updateChannel(Channel* channel);
             bool hasChannel(Channel *channel);
 
-
+            /**  Timer Event
+             * 允许跨线程使用，比方说我想在某个IO线程中执行超时回调。
+             * 这就带来 线程安全性方面的问题，muduo的解决办法不是加锁，
+             * 而是把对 TimerQueue的操作转移到IO线程来进行 -> runInLoop
+             */
             TimerId runAt(TimeStamp timeStamp, TaskFunc&& cb);
             TimerId runAfter(double waitTime, TaskFunc&& cb);
             TimerId runEvery(double interval, TaskFunc&& cb);
 
-            void adjust(TimerId timerId, TimeStamp now);
             void cancel(TimerId timerId);
 
             static EventLoop* getEventLoopOfCurrentThread();

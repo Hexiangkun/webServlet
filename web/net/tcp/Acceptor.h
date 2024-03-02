@@ -42,7 +42,7 @@ namespace Tiny_muduo
             EventLoop* _loop;
             Socket _acceptSocket;           //监听的套接字
             Channel _acceptChannel;         //监听的通道
-            NewConnectionCallback _newConnectionCallback;   //创建连接时的回调
+            NewConnectionCallback _newConnectionCallback;   //accept之后回调
             bool _listening;                //是否正在监听标志
             int _idleFd;                    //占位fd,用于满fd的情况
         };

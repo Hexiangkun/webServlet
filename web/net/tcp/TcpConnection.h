@@ -40,6 +40,7 @@ namespace Tiny_muduo
 
             void send(const std::string& buf);
             void send(Buffer* buf);
+            void sendFile(const int fd, const size_t count);
 
             void shutdown();                //关闭连接
             void forceClose();
@@ -69,8 +70,6 @@ namespace Tiny_muduo
             void setCloseCallback(const CloseCallback& cb) { _closeCallback = cb; }
             void setHighWaterMarkCallback(const HighWaterMarkCallback& cb) { _highWaterMarkCallback = cb; }
 
-            Buffer::_ptr getReadBuffer() const { return _inputBuffer; }
-            Buffer::_ptr getWriteBuffer() const { return _outputBuffer; }
 
             void setContext(std::shared_ptr<void> context) { shared_context = context; }
             std::shared_ptr<void> getContext() const { return shared_context; }
@@ -84,6 +83,14 @@ namespace Tiny_muduo
             void set_last_message(TimeStamp now) { _lastMessage = now; }
 
         private:
+        /**
+        *    ---(established)---<  Connecting
+        *    |
+        * Connected  ------------- shutdown() ------------>  Disconnecting
+        *    |                                                     |
+        *    ---(handleClose)--->  Disconnected <---(handleClose)---
+        *
+        */
             enum StateE
             {
                 kDisconnected,  //已经断开连接
@@ -100,6 +107,8 @@ namespace Tiny_muduo
 
             void sendInLoop(const void* message, size_t len);
             void sendInLoop(const std::string& message);
+            void sendFileInLoop();
+
             void shutdownInLoop();
             void forceCloseInLoop();
             void startReadInLoop();
@@ -122,16 +131,19 @@ namespace Tiny_muduo
 
             ConnectionCallback _connectionCallback;          //连接建立/关闭后的回调函数
             MessageCallback _messageCallback;                //收到消息后的回调
-            WriteCompleteCallback _writeCompleteCallback;    //消息发送完毕后的回调
+            WriteCompleteCallback _writeCompleteCallback;    //消息缓冲区发送完毕后的回调
             CloseCallback  _closeCallback;                   //客户端关闭连接的回调
             HighWaterMarkCallback _highWaterMarkCallback;    //超出水位实现的回调
             size_t _highWaterMark;
 
             Buffer::_ptr _inputBuffer;
             Buffer::_ptr _outputBuffer;
+
             std::shared_ptr<void> shared_context;
             std::any _context;
 
+            int _sendFd;        //sendfile保存在本地的fd
+            size_t _sendLen;    //当前需要发送的数据长度
         };
     }
 }

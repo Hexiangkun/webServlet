@@ -20,8 +20,8 @@ namespace Tiny_muduo
         class EventLoop;
 
         /**
-         * 管理fd
-         * 注册fd在epoll上的事件
+         * 每个channel对象自始至终只属于一个EventLoop，因此每个channel对象都只属于某一个IO线程
+         * 管理fd， 注册fd在epoll上的事件，不拥有这个fd
          * 事件发生后，执行回调函数，处理事件
          * */
         class Channel : public Noncopyable
@@ -74,11 +74,17 @@ namespace Tiny_muduo
             std::string reventsToString() const;
             std::string eventsToString() const;
 
-            // TODO:防止当 channel 执行回调函数时被被手动 remove 掉
+            /**
+             * 将channel与对象(owner object)绑定
+             * 使得 owner object 在handleEvent中不被析构
+             */
             void tie(const std::shared_ptr<void>&);
 
             void removeChannel();
         private:
+            /*
+            * Channel::update()会调用EventLoop::updateChannel()，后者会转而调用Poller::updateChannel()
+            */
             void updateChannel();
             void handleEventWithGuard(TimeStamp receiveTime);
             static std::string eventsToString(int fd, int ev);
