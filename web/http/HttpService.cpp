@@ -7,6 +7,17 @@
 
 namespace Tiny_muduo::Http
 {
+    namespace detail
+    {
+        std::string DefaultPage(int code, const std::string &content) {
+            std::string text = std::to_string(code) + " " + HttpStatusCode2Str.at(code);
+            return R"(<html><head><title>)" + text +
+                   R"(</title></head><body><center><h1>)" + text +
+                   R"(</h1></center><hr><center>)" + content +
+                   R"(</center></body></html>)";
+        }
+    }
+
     static const std::string STORE_ROOT = "/root/webserver/store/";
 
     void DefaultHandle(const HttpRequest& request, HttpResponse* response) {
@@ -198,14 +209,66 @@ namespace Tiny_muduo::Http
             response->setHtmlBody("filedownload.html");
         }
         else  {
-            std::filesystem::path p("/root/resources/"+request.getPath().substr(1));
+            std::filesystem::path p("/root/resources"+request.getPath());
             if(std::filesystem::exists(p)) {
-                response->setStatusCode(HttpStatusCode::OK);
-                response->setContentType(Ext2HttpContentType.at(p.extension()));
-                response->setFileBody(p.string());
+                int fd = ::open(p.string().c_str(), O_RDONLY);
+                if(fd < 0) {
+                    response->setStatusCode(HttpStatusCode::NOT_FOUND);
+                    DefaultHandle(request, response);
+                    return;
+                }
+                auto len = std::filesystem::file_size(p);
+                response->setFileFd(fd);
+                response->addAtrribute("Accept-Ranges", "bytes");
+                std::string e = p.extension();
+                response->setContentType(Ext2HttpContentType.at(e));
+
+                ReturnOption<std::string> range_option = request.getHeader().get("Range");
+                if(range_option.exist()) {
+                    std::string range = range_option.value();
+                    response->setStatusCode(HttpStatusCode::PARTIAL_CONTENT);
+
+                    off64_t beg_num = 0, end_num = 0;
+                    std::string range_value = range.substr(6);
+                    size_t pos = range_value.find("-");
+                    std::string beg = range_value.substr(0, pos);
+                    std::string end = range_value.substr(pos + 1);
+                    if (beg != "" && end != "")
+                    {
+                        beg_num = stoi(beg);
+                        end_num = stoi(end);
+                    }
+                    else if (beg != "" && end == "")
+                    {
+                        beg_num = stoi(beg);
+                        end_num = len - 1;
+                    }
+                    else if (beg == "" && end != "")
+                    {
+                        beg_num = len - stoi(end);
+                        end_num = len - 1;
+                    }
+
+                    // 需要读need_len个字节
+                    // off64_t need_len = std::min(end_num - beg_num + 1, maxSendLen);
+                    off64_t need_len = end_num - beg_num + 1;
+                    end_num = beg_num + need_len - 1;
+                    lseek(fd, beg_num, SEEK_SET);
+                    response->setFileLen(static_cast<int>(need_len));
+
+                    std::ostringstream os_range;
+                    os_range << "bytes " << beg_num << "-" << end_num << "/" << len;
+                    response->addAtrribute("Content-Range", os_range.str());
+                    response->setContentLength(need_len);
+                }
+                else {
+                    response->setStatusCode(HttpStatusCode::OK);
+                    response->setFileLen(len);
+                    response->setContentLength(len);
+                }
             }
             else {
-                response->setStatusCode(HttpStatusCode::BAD_REQUEST);
+                response->setStatusCode(HttpStatusCode::NOT_FOUND);
                 DefaultHandle(request, response);
             }
         }

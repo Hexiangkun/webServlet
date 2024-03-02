@@ -17,7 +17,7 @@
 #include "base/Buffer.h"
 #include "base/FileUtil.h"
 #include "nlohmann/json.h"
-
+#include "config/Config.h"
 
 namespace Tiny_muduo::Http
 {
@@ -29,10 +29,13 @@ namespace Tiny_muduo::Http
                 : statusCode_(HttpStatusCode::OK),
                   closeConnection_(close),
                   version_(HttpVersion::HTTP_1_0),
+                  root_path_(config::GET_CONFIG<std::string>("resource", "/root/webserver/web/resource")),
                   contentLength_(-1),
                   isFileBody_(false),
                   keepAlive_(false),//todo
-                  hasSession_(false)//todo
+                  hasSession_(false),//todo
+                  fileFd_(-1),
+                  fileLen_(0)
         {
         }
 
@@ -62,6 +65,14 @@ namespace Tiny_muduo::Http
         void setPlainText(const std::string& content);
         void setJsonBody(nlohmann::json node);
 
+        bool needSendFile() const { return fileFd_ != -1; }
+        int getFileFd() const { return fileFd_; }
+        void setFileFd(const int fd) { fileFd_ = fd; }
+        off64_t getFileLen() const { return fileLen_; }
+        void setFileLen(const off64_t len) { fileLen_ = len; }
+
+        const std::string& getRootPath() const { return root_path_; }
+
         void appendToBuffer(Buffer* output) ;
 
     private:
@@ -72,13 +83,18 @@ namespace Tiny_muduo::Http
         size_t contentLength_;
 
         bool isFileBody_;
-        std::string file_path_;
-        bool closeConnection_;
-        std::string body_;
+        std::string root_path_;         //资源目录
+        std::string file_path_;         //请求文件路径
 
-        bool keepAlive_;
-        bool hasSession_;
+        bool closeConnection_;          //是否关闭连接
 
+        std::string body_;              //消息体
+
+        bool keepAlive_;                //todo
+        bool hasSession_;               //todo
+
+        int fileFd_;        //传输文件时，文件描述符
+        off64_t fileLen_;   //文件大小
     };
 
 }

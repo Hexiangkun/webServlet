@@ -58,6 +58,7 @@ namespace Tiny_muduo::Http
         void onConnection(const net::TcpConnection::_ptr& conn);
         void onMessage(const net::TcpConnection::_ptr& conn, Buffer* buf, TimeStamp receiveTime);
         void onRequest(const net::TcpConnection::_ptr&, const HttpRequest&);
+        void onIdle(std::weak_ptr<net::TcpConnection>& connection);
 
         void beforeServlet(HttpRequest request, HttpResponse* response);
         void afterServlet(const net::TcpConnection::_ptr&, HttpRequest request, HttpResponse* response);
@@ -68,6 +69,8 @@ namespace Tiny_muduo::Http
         HttpCallback m_httpCallback;
         ServletDispatcher::_ptr m_servletDispatcher;
         HttpSessionManager* m_sessionManager;
+        bool auto_close_idle_connection_;
+        static const int kConnectionTimeout = 80;
     };
 }
 

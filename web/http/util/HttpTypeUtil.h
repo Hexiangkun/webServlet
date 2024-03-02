@@ -177,7 +177,7 @@ namespace Tiny_muduo::Http
             {".iso", "application/octet-stream"},
             {".img", "application/octet-stream"},
             {".dmg", "application/octet-stream"},
-            {".docx","application/vnd.openxmlformats-officedocument.wordprocessingml.document"},
+            {".docx","application/nsword"},
             {".xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
             {".pptx","application/""vnd.openxmlformats-officedocument.presentationml.presentation"}
     };

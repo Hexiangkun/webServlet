@@ -3,11 +3,10 @@
 //
 
 #include "HttpResponse.h"
-#include "config/Config.h"
+
 
 namespace Tiny_muduo::Http
 {
-    static const std::string BASE_ROOT = config::GET_CONFIG<std::string>("resource", "/root/webserver/web/resource/");
 
     void HttpResponse::setHttpResponseLine(Tiny_muduo::Http::HttpVersion version, Tiny_muduo::Http::HttpStatusCode code)  {
         setStatusCode(code);
@@ -61,7 +60,7 @@ namespace Tiny_muduo::Http
 
     void HttpResponse::setHtmlBody(const std::string &filepath) {
         header_.setContentType(HttpContentType2Str.at(HttpContentType::HTML));
-        setFileBody(BASE_ROOT+filepath);
+        setFileBody(root_path_+filepath);
     }
 
     void HttpResponse::setPlainText(const std::string &content) {
@@ -89,15 +88,16 @@ namespace Tiny_muduo::Http
         }
         else
         {
-            if(contentLength_ == -1) {
+            if(contentLength_ == -1 && !needSendFile()) {
                 if(isFileBody_) {
                     contentLength_ = std::filesystem::file_size(file_path_);
                 }
                 else {
                     contentLength_ = body_.size();
                 }
+                header_.setContentLength(std::to_string(contentLength_));
             }
-            header_.setContentLength(std::to_string(contentLength_));
+
             setKeepAlive(true);
         }
 
