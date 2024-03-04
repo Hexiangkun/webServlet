@@ -60,6 +60,7 @@ namespace Tiny_muduo::Http
         void appendBody(const std::string& data) { body_.append(data); }
         void setBody(const std::string& body) { body_ = body; }
 
+        void setFile(const std::string& filepath);
         void setFileBody(const std::string& filepath);
         void setHtmlBody(const std::string& filepath);
         void setPlainText(const std::string& content);
@@ -84,7 +85,6 @@ namespace Tiny_muduo::Http
 
         bool isFileBody_;
         std::string root_path_;         //资源目录
-        std::string file_path_;         //请求文件路径
 
         bool closeConnection_;          //是否关闭连接
 

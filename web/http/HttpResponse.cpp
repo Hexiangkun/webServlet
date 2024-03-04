@@ -49,18 +49,21 @@ namespace Tiny_muduo::Http
         header_.add("Location", url);
     }
 
-    void HttpResponse::setFileBody(const std::string &filepath) {
+    void HttpResponse::setFile(const std::string &filepath) {
         body_.clear();
-        isFileBody_ = true;
-        file_path_ = filepath;
         std::string content;
         readSmallFile(filepath.c_str(), 64*1024*1024,  content, nullptr, nullptr, nullptr);
         setBody(content);
     }
 
+    void HttpResponse::setFileBody(const std::string &filepath) {
+        body_.clear();
+        isFileBody_ = true;
+    }
+
     void HttpResponse::setHtmlBody(const std::string &filepath) {
         header_.setContentType(HttpContentType2Str.at(HttpContentType::HTML));
-        setFileBody(root_path_+filepath);
+        setFile(root_path_+filepath);
     }
 
     void HttpResponse::setPlainText(const std::string &content) {
@@ -88,9 +91,9 @@ namespace Tiny_muduo::Http
         }
         else
         {
-            if(contentLength_ == -1 && !needSendFile()) {
-                if(isFileBody_) {
-                    contentLength_ = std::filesystem::file_size(file_path_);
+            if(contentLength_ == -1 ) {
+                if(isFileBody_ && needSendFile()) {
+                    contentLength_ = fileLen_;
                 }
                 else {
                     contentLength_ = body_.size();
@@ -109,7 +112,9 @@ namespace Tiny_muduo::Http
         }
 
         output->append("\r\n");
-        output->append(body_);
+        if(isFileBody_ == false){
+            output->append(body_);
+        }
     }
 
 

@@ -45,7 +45,7 @@ namespace Tiny_muduo::Http
 
                 if(accpetable_exts.find(ext) != accpetable_exts.end()) {
                     resp->setContentType(Ext2HttpContentType.at(ext));
-                    resp->setFileBody(p.c_str());
+                    resp->setFile(p.c_str());
                 }
                 else {
                     resp->setStatusCode(HttpStatusCode::NOT_FOUND);

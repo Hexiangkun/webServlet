@@ -12,8 +12,6 @@ namespace Tiny_muduo::Http
     {
         void defaultHttpCallback(const HttpRequest&, HttpResponse* resp)
         {
-//            resp->setStatusCode(HttpResponse::k404NotFound);
-//            resp->setStatusMessage("Not Found");
             resp->setStatusCode(HttpStatusCode::NOT_FOUND);
             resp->setCloseConnection(true);
         }
@@ -22,43 +20,43 @@ namespace Tiny_muduo::Http
 
 
 
-HttpServer::HttpServer(net::EventLoop* loop, const net::InetAddress& listenAddr, const std::string& name)
-        : m_server(loop, listenAddr, name),
-          m_httpCallback(detail::defaultHttpCallback),
-          m_servletDispatcher(std::make_shared<ServletDispatcher>()),
-          m_sessionManager(&HttpSessionManager::getInstance()),
-          auto_close_idle_connection_(false)
-{
-    m_server.setConnectionCallback(std::bind(&HttpServer::onConnection, this, std::placeholders::_1));
-    m_server.setMessageCallback(std::bind(&HttpServer::onMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-}
-
-HttpServer::~HttpServer()
-{
-}
-
-void HttpServer::start()
-{
-#ifdef DEBUG
-    LOG_WARN << "HttpServer[" << m_server.name() << "] starts listenning on " << m_server.ipPort();
-#endif
-    m_server.start();
-}
-
-void HttpServer::onConnection(const net::TcpConnection::_ptr& conn)
-{
-    if (conn->connected())
+    HttpServer::HttpServer(net::EventLoop* loop, const net::InetAddress& listenAddr, const std::string& name)
+            : m_server(loop, listenAddr, name),
+              m_httpCallback(detail::defaultHttpCallback),
+              m_servletDispatcher(std::make_shared<ServletDispatcher>()),
+              m_sessionManager(&HttpSessionManager::getInstance()),
+              auto_close_idle_connection_(false)
     {
-        conn->setContext(std::make_shared<HttpContext>());
+        m_server.setConnectionCallback(std::bind(&HttpServer::onConnection, this, std::placeholders::_1));
+        m_server.setMessageCallback(std::bind(&HttpServer::onMessage, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     }
-    if(auto_close_idle_connection_) {
-        conn->getLoop()->runAfter(kConnectionTimeout, std::move(std::bind(&HttpServer::onIdle, this, std::weak_ptr<net::TcpConnection>(conn))));
+
+    HttpServer::~HttpServer()
+    {
     }
-}
+
+    void HttpServer::start()
+    {
+#ifdef USE_DEBUG
+        LOG_WARN << "HttpServer[" << m_server.name() << "] starts listenning on " << m_server.ipPort();
+#endif
+        m_server.start();
+    }
+
+    void HttpServer::onConnection(const net::TcpConnection::_ptr& conn)
+    {
+        if (conn->connected())
+        {
+            conn->setContext(std::make_shared<HttpContext>());
+        }
+        if(auto_close_idle_connection_) {
+            conn->getLoop()->runAfter(kConnectionTimeout, std::move(std::bind(&HttpServer::onIdle, this, std::weak_ptr<net::TcpConnection>(conn))));
+        }
+    }
 
     void HttpServer::onMessage(const net::TcpConnection::_ptr& conn, Buffer* buf, TimeStamp receiveTime)
     {
-#ifndef DEBUG
+#ifndef USE_DEBUG
         LOG_INFO << buf->toString() ;
 #endif
         std::shared_ptr<HttpContext> context = std::static_pointer_cast<HttpContext>(conn->getContext());
@@ -89,7 +87,7 @@ void HttpServer::onRequest(const net::TcpConnection::_ptr& conn, const HttpReque
     //m_httpCallback(req, &response);
     Buffer buf;
     response.appendToBuffer(&buf);
-#ifndef DEBUG
+#ifndef USE_DEBUG
     LOG_INFO << buf.toString() ;
 #endif
     conn->send(&buf);
