@@ -30,6 +30,7 @@ namespace Tiny_muduo
             static const int kNoneEvent;
             static const int kReadEvent;
             static const int kWriteEvent;
+            static const int kET;
 
         public:
             using _ptr = std::shared_ptr<Channel>;
@@ -42,10 +43,10 @@ namespace Tiny_muduo
             // fd得到Poller通知以后 处理事件 handleEvent在EventLoop::loop()中调用
             void handleEvents(TimeStamp receiveTime);
 
-            void setReadCallback(ReadEventCallback cb) { _readCallback = std::move(cb); }
-            void setWriteCallback(EventCallback cb) { _writeCallback = std::move(cb); }
-            void setCloseCallback(EventCallback cb) { _closeCallback = std::move(cb); }
-            void setErrorCallback(EventCallback cb) { _errorCallback = std::move(cb); }
+            void setReadCallback(const ReadEventCallback& cb) { _readCallback = cb; }
+            void setWriteCallback(const EventCallback& cb) { _writeCallback = cb; }
+            void setCloseCallback(const EventCallback& cb) { _closeCallback = cb; }
+            void setErrorCallback(const EventCallback& cb) { _errorCallback = cb; }
 
             // 设置fd相应的事件状态，update()其本质调用epoll_ctl
             void enableReading() { _events |= kReadEvent; updateChannel(); }
@@ -69,10 +70,6 @@ namespace Tiny_muduo
             void setEvents(int events) { _events = events; }
             void setRevents(int events) { _revents = events; }
             int revents() const { return _revents; }
-
-            // for debug
-            std::string reventsToString() const;
-            std::string eventsToString() const;
 
             /**
              * 将channel与对象(owner object)绑定

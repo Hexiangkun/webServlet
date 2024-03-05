@@ -12,7 +12,7 @@
 
 void Tiny_muduo::net::defaultConnectionCallback(const Tiny_muduo::net::TcpConnectionPtr& conn)
 {
-#ifdef DEBUG
+#ifdef USE_DEBUG
     LOG_TRACE << conn->localAddress().toString() << " -> "
               << conn->peerAddress().toString() << " is "
               << (conn->connected() ? "UP" : "DOWN");
@@ -50,8 +50,8 @@ namespace Tiny_muduo::net
                                  _reading(true),
                                  _socket(std::make_unique<Socket>(sockfd)),
                                  _channel(std::make_unique<Channel>(loop, sockfd)),
-                                 _inputBuffer(std::make_shared<Buffer>()),
-                                 _outputBuffer(std::make_shared<Buffer>()),
+                                 _inputBuffer(),
+                                 _outputBuffer(),
                                  _localAddr(localAddr), _peerAddr(peerAddr),
                                  _highWaterMark(64 * 1024 * 1024), // 64M 避免发送太快对方接受太慢
                                  _sendFd(-1),
@@ -61,7 +61,7 @@ namespace Tiny_muduo::net
         _channel->setWriteCallback(std::bind(&TcpConnection::handleWrite, this));
         _channel->setCloseCallback(std::bind(&TcpConnection::handleClose, this));
         _channel->setErrorCallback(std::bind(&TcpConnection::handleError, this));
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_INFO << "TcpConnection::ctor[" << _name.c_str() << "] at fd =" << sockfd;
 #endif
         _socket->setKeepAlive(true);
@@ -69,7 +69,7 @@ namespace Tiny_muduo::net
 
     TcpConnection::~TcpConnection()
     {
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_INFO << "TcpConnection::dtor[" << _name.c_str() << "] at fd=" << _channel->fd() << " state=" << stateToString();
 #endif
         assert(_state == kDisconnected);
@@ -78,7 +78,7 @@ namespace Tiny_muduo::net
     void TcpConnection::send(const std::string &buf) {
         if(_state == kConnected) {
             if(_loop->isInLoopThread()) {
-                sendInLoop(buf.c_str(), buf.size());
+                sendInLoop(buf);
             }
             else {
                 // 遇到重载函数的绑定，可以使用函数指针来指定确切的函数
@@ -123,7 +123,7 @@ namespace Tiny_muduo::net
         if(_state == kDisconnected) {
             return ;
         }
-        if(!_channel->isWriting() && _outputBuffer->readableBytes() == 0) {
+        if(!_channel->isWriting() && _outputBuffer.readableBytes() == 0) {
             nwrote = ::sendfile(_socket->sockfd(), _sendFd, nullptr, _sendLen);
             if(nwrote >= 0) {
                 _sendLen -= static_cast<size_t>(nwrote);
@@ -212,7 +212,6 @@ namespace Tiny_muduo::net
         _loop->assertInLoopThread();
         if(_state == kConnected) {
             setState(kDisconnected);
-
             _channel->disableAll();
             _connectionCallback(shared_from_this());
         }
@@ -241,10 +240,10 @@ namespace Tiny_muduo::net
     */
     void TcpConnection::handleRead(Tiny_muduo::TimeStamp receiveTime) {
         int saveErrno = 0;
-        ssize_t n = _inputBuffer->readFd(_channel->fd(), &saveErrno);
+        ssize_t n = _inputBuffer.readFd(_channel->fd(), &saveErrno);
         if(n > 0) {
             // 已建立连接的用户，有可读事件发生，调用用户传入的回调操作
-            _messageCallback(shared_from_this(), _inputBuffer.get(), receiveTime);
+            _messageCallback(shared_from_this(), &_inputBuffer, receiveTime);
         }
         else if(n == 0) {//读出长度为0，说明链接断开
             handleClose();
@@ -260,14 +259,14 @@ namespace Tiny_muduo::net
         _loop->assertInLoopThread();
         if(_channel->isWriting()) {
             int saveErrno = 0;
-            if(_outputBuffer->readableBytes()) {
-                ssize_t n = sockops::write(_channel->fd(), _outputBuffer->peek(), _outputBuffer->readableBytes());
-
+            if(_outputBuffer.readableBytes()) {
+                ssize_t n = sockops::write(_channel->fd(), _outputBuffer.peek(), _outputBuffer.readableBytes());
+//            ssize_t n = _outputBuffer.writeFd(_channel->fd(), &saveErrno);
                 if(n > 0) {
-                    _outputBuffer->retrieve(static_cast<size_t>(n));
+                    _outputBuffer.retrieve(static_cast<size_t>(n));
                     // 说明buffer可读数据都被TcpConnection读取完毕并写入给了客户端
                     // 此时就可以关闭连接，否则还需继续提醒写事件
-                    if(_outputBuffer->readableBytes() == 0 && _sendLen == 0) {
+                    if(_outputBuffer.readableBytes() == 0 && _sendLen == 0) {
                         // 一旦发送完毕，立刻停止观察writable事件，避免busy loop
                         _channel->disableWriting();
 
@@ -322,7 +321,7 @@ namespace Tiny_muduo::net
      * */
     void TcpConnection::handleClose() {
         _loop->assertInLoopThread();
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_TRACE << "fd = " << _channel->fd() << " state = " << stateToString();
 #endif
         assert(_state == kConnected || _state == kDisconnecting);
@@ -360,7 +359,7 @@ namespace Tiny_muduo::net
             return;
         }
         // channel第一次写数据，且缓冲区没有待发送数据
-        if(!_channel->isWriting() && _outputBuffer->readableBytes() == 0) {
+        if(!_channel->isWriting() && _outputBuffer.readableBytes() == 0) {
             nwrote = sockops::write(_channel->fd(), message, len);
 
             if(nwrote >= 0) {
@@ -394,12 +393,12 @@ namespace Tiny_muduo::net
         assert(remaining <= len);
         // 说明一次性并没有发送完数据，剩余数据需要保存到缓冲区中，且需要改channel注册写事件
         if(!faultError && remaining > 0) {
-            size_t oldLen = _outputBuffer->readableBytes();
+            size_t oldLen = _outputBuffer.readableBytes();
             if((oldLen + remaining >= _highWaterMark) && oldLen < _highWaterMark && _highWaterMarkCallback) {
                 _loop->queueInLoop(std::bind(_highWaterMarkCallback, shared_from_this(), oldLen + remaining));
             }
 
-            _outputBuffer->append(static_cast<const char*>(message) + nwrote, remaining);
+            _outputBuffer.append(static_cast<const char*>(message) + nwrote, remaining);
             if(!_channel->isWriting()) {
                 _channel->enableWriting();
             }
@@ -413,7 +412,7 @@ namespace Tiny_muduo::net
     void TcpConnection::shutdownInLoop() {
         _loop->assertInLoopThread();
         if(!_channel->isWriting()) {
-            _socket->shutdownWrite();
+            _socket->shutdownWrite();       //优雅关闭套接字
         }
     }
 

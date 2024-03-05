@@ -52,7 +52,7 @@ namespace Tiny_muduo::net
             }
         }
         else if(nfd == 0) {
-#ifdef DEBUG
+#ifdef USE_DEBUG
             LOG_DEBUG << "timeout";
 #endif
         }
@@ -77,7 +77,7 @@ namespace Tiny_muduo::net
         }       //超时
         else if (numEvents == 0)
         {
-#ifdef DEBUG
+#ifdef USE_DEBUG
             LOG_DEBUG << "epoll_wait() timeout";
 #endif
         }
@@ -143,9 +143,6 @@ namespace Tiny_muduo::net
 
     void EpollPoller::updateChannel(Channel* channel) {
         const int index = channel->index();     //获取当前channel在epoll的状态
-#ifdef DEBUG
-        LOG_TRACE << "fd = " << channel->fd() << " events = " << channel->eventsToString();
-#endif
         //未添加和已删除状态都有可能会被再次添加
         if(index == kNew || index == kDeleted) {
             int fd = channel->fd();

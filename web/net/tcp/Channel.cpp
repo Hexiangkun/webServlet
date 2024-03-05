@@ -14,7 +14,7 @@ namespace Tiny_muduo::net
     const int Channel::kNoneEvent = 0;
     const int Channel::kReadEvent = EPOLLIN | EPOLLPRI;     // POLLPRI 有紧迫数据可读
     const int Channel::kWriteEvent = EPOLLOUT;
-
+    const int Channel::kET = EPOLLET;
 
     Channel::Channel(EventLoop *loop, int fd)
             : _loop(loop),
@@ -62,6 +62,13 @@ namespace Tiny_muduo::net
         // 当事件为挂起并没有可读事件时
         // POLLHUP 对方描述符挂起
         // 当客户端调用 close，服务器端接收到 POLLHUP 和 POLLIN
+        if (_revents & POLLNVAL) // invalid polling request
+        {
+#ifdef USE_DEBUG
+            LOG_WARN<< "Channel::handle_event() POLLNVAL";
+#endif
+        }
+
         if((_revents & EPOLLHUP) && !(_revents & EPOLLIN)) {
             if(_closeCallback) {
                 _closeCallback();
@@ -70,7 +77,7 @@ namespace Tiny_muduo::net
 
         // POLLRDHUP 对等方关闭连接
         // 发生错误或者描述符不可打开
-        if(_revents & (POLLNVAL | EPOLLERR)) {
+        if(_revents & (POLLNVAL | POLLERR)) {
             LOG_ERROR << "the fd = " << fd() << "happended error thing";
             if(_errorCallback) {
                 _errorCallback();
@@ -78,13 +85,10 @@ namespace Tiny_muduo::net
         }
         //读事件
         if(_revents & (EPOLLIN | EPOLLPRI | EPOLLRDHUP)) {
-#ifdef DEBUG
+#ifdef USE_DEBUG
             LOG_DEBUG << "channel have read events, fd = " << fd();
 #endif
             if(_readCallback) {
-#ifdef DEBUG
-                LOG_DEBUG << "channel call the readCallback_(), the fd = " << this->fd();
-#endif
                 _readCallback(receiveTime);
             }
         }
@@ -121,15 +125,6 @@ namespace Tiny_muduo::net
         _loop->updateChannel(this);
     }
 
-    std::string Channel::reventsToString() const
-    {
-        return eventsToString(_fd, _revents);
-    }
-
-    std::string Channel::eventsToString() const
-    {
-        return eventsToString(_fd, _events);
-    }
 
     std::string Channel::eventsToString(int fd, int ev)
     {

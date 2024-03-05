@@ -16,6 +16,14 @@
 #include "base/TimeStamp.h"
 #include "net/timer/TimerId.h"
 
+#ifdef USE_LOCKFREEQUEUE
+#include "base/KLockFreeQueue.h"
+#endif
+
+#ifdef USE_SPINLOCK
+#include ".base/KSpinLock.h"
+#endif
+
 namespace Tiny_muduo
 {
     namespace net
@@ -98,14 +106,24 @@ namespace Tiny_muduo
 
             TimeStamp _pollReturnTime;              // poller返回发生事件的channels的返回时间
 
-            std::vector<TaskFunc > _pendingTasks;   // 存储loop跨线程需要执行的所有回调操作
             std::atomic_bool _callPendingTasks;     // 标志当前loop是否有需要执行的回调操作
 
             std::vector<Channel*> _activeChannels;
             Channel* _currentActiveChannel;
 
             std::any _context;
-            std::mutex _mutex;
+
+#ifdef USE_LOCKFREEQUEUE
+            LockFreeQueue<TaskFunc> _pendingTasks;
+#else
+    // 锁类型的选择
+    #ifdef USE_SPINLOCK
+                SpinLock spinlock;
+    #else
+                std::mutex _mutex;
+    #endif
+            std::vector<TaskFunc> _pendingTasks;// 存储loop跨线程需要执行的所有回调操作
+#endif
         };
     }
 }

@@ -59,7 +59,7 @@ namespace Tiny_muduo::net
             _weakUpChannel(std::make_unique<Channel>(this, _wakeupFd)),
             _currentActiveChannel(nullptr)
     {
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_DEBUG << "EventLoop created " << this << " the index is " << _threadId;
         LOG_DEBUG << "EventLoop created wakeupFd " << _weakUpChannel->fd();
 #endif
@@ -77,7 +77,7 @@ namespace Tiny_muduo::net
     }
 
     EventLoop::~EventLoop() {
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_DEBUG << "EventLoop " << this << " of thread " << _threadId
                   << " destructs in thread " << CurrentThread::tid();
 #endif
@@ -94,7 +94,7 @@ namespace Tiny_muduo::net
         assertInLoopThread();
         _looping = true;
         _quit = false;
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_INFO << "EventLoop " << this << " start looping";
 #endif
         while (!_quit) {
@@ -171,10 +171,29 @@ namespace Tiny_muduo::net
  * IO 线程会被唤醒来调用这个Functor
  */
     void EventLoop::queueInLoop(EventLoop::TaskFunc task) {
-        {
-            std::unique_lock<std::mutex> lock(_mutex);
-            _pendingTasks.emplace_back(std::move(task));
-        }
+    {
+#ifdef USE_LOCKFREEQUEUE
+        _pendingTasks.Enqueue(std::move(task));
+#else
+#ifdef USE_SPINLOCK
+        spinlock.lock();
+        _pendingTasks.push_back(task);
+        spinlock.unlock();
+#else
+        std::lock_guard<std::mutex> lock(_mutex);
+        _pendingTasks.push_back(std::move(task));
+#endif
+#endif
+    }
+
+    if (!isInLoopThread() || _callPendingTasks) {
+        wakeup();
+    }
+
+//        {
+//            std::unique_lock<std::mutex> lock(_mutex);
+//            _pendingTasks.emplace_back(std::move(task));
+//        }
         // 唤醒相应的，需要执行上面回调操作的loop线程
         /** 
          * TODO:
@@ -182,9 +201,9 @@ namespace Tiny_muduo::net
          * 这个 || callingPendingFunctors_ 比较有必要，因为在执行回调的过程可能会加入新的回调
          * 则这个时候也需要唤醒，否则就会发生有事件到来但是仍被阻塞住的情况
          */
-        if(!isInLoopThread() || _callPendingTasks) {
-            wakeup();
-        }
+//        if(!isInLoopThread() || _callPendingTasks) {
+//            wakeup();
+//        }
     }
 
     // 用来唤醒loop所在线程 向wakeupFd_写一个数据 wakeupChannel就发生读事件 当前loop线程就会被唤醒
@@ -245,28 +264,63 @@ namespace Tiny_muduo::net
 
 
     void EventLoop::doPendingTask() {
-        std::vector<TaskFunc > funcs;
+
+
+#ifdef USE_LOCKFREEQUEUE
         _callPendingTasks = true;
-
+  // 遍历执行回调函数
+  for (;;) {
+    TaskFunc functor;
+    bool flag = _pendingTasks.Try_Dequeue(functor);
+    if (flag) {
+      if (functor != nullptr) {
+        functor();
+      }
+    } else {
+      break;
+    }
+  }
+#else
         {
-            std::unique_lock<std::mutex> lock(_mutex);
-            funcs.swap(_pendingTasks);
+            std::vector<TaskFunc> functors;
+            _callPendingTasks = true;
+#ifdef USE_SPINLOCK
+            spinlock.lock();
+            functors.swap(pendingFunctors_);
+            spinlock.unlock();
+#else
+            std::lock_guard<std::mutex> lock(_mutex);
+            functors.swap(_pendingTasks);
+#endif
+            // 遍历执行回调函数
+            for (auto &functor : functors) {
+                functor();
+            }
         }
+#endif
 
-        for(const auto& func : funcs) {
-            func();
-        }
+//        std::vector<TaskFunc > funcs;
+//        _callPendingTasks = true;
+//
+//        {
+//            std::unique_lock<std::mutex> lock(_mutex);
+//            funcs.swap(_pendingTasks);
+//        }
+//
+//        for(const auto& func : funcs) {
+//            func();
+//        }
 
         _callPendingTasks = false;
     }
 
     void EventLoop::abortNotInLoopThread()
     {
-    #ifdef DEBUG
+#ifdef USE_DEBUG
             LOG_FATAL << "EventLoop::abortNotInLoopThread - EventLoop " << this
                       << " was created in threadId_ = " << _threadId
                       << ", current thread id = " <<  CurrentThread::tid();
-    #endif
+#endif
     }
 
     void EventLoop::printActiveChannels() const
@@ -274,9 +328,7 @@ namespace Tiny_muduo::net
         for (const auto& channel : _activeChannels)
         {
             const Channel* ch = channel;
-#ifdef DEBUG
-            LOG_TRACE << "{" << ch->reventsToString() << "} ";
-#endif
+
         }
     }
 }

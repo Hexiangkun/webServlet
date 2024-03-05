@@ -19,7 +19,7 @@ namespace Tiny_muduo::net
              _idleFd(::open("/dev/null", O_RDONLY | O_CLOEXEC))
     {
         assert(_idleFd >= 0);
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_DEBUG << "Acceptor create nonblocking socket, [fd = " << _acceptChannel.fd() << "]";
 #endif
         _acceptSocket.setReuseAddr(true);
@@ -51,7 +51,7 @@ namespace Tiny_muduo::net
     // 当epoll监听到listenfd有事件发生了，就是有新用户连接了
     void Acceptor::handleNewConnection() {
         _loop->assertInLoopThread();
-        //对等方地址
+
         InetAddress peerAddr(0);
 
         int connfd = _acceptSocket.accept(&peerAddr);   // 接受新连接

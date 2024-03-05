@@ -38,7 +38,7 @@ namespace Tiny_muduo::net
 
     TcpServer::~TcpServer() {
         _mainLoop->assertInLoopThread();
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_TRACE << "TcpServer::~TcpServer [" << _name << "] destructing";
 #endif
         for(auto& connection : _connections) {
@@ -70,7 +70,7 @@ namespace Tiny_muduo::net
         ++_nextConnId;
         // 新连接名字
         std::string connName = _name + buf;
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_INFO << "TcpServer::newConnection [" << _name.c_str() << "] - new connection [" << connName.c_str() << "] from " << peerAddr.toString().c_str();
 #endif
         InetAddress localAddr(sockops::getLocalAddr(sockfd));
@@ -97,7 +97,7 @@ namespace Tiny_muduo::net
 
     void TcpServer::removeConnectionInLoop(const TcpConnectionPtr &connection) {
         _mainLoop->assertInLoopThread();
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_INFO << "TcpServer::removeConnectionInLoop [" << _name.c_str() << "] - connection " << connection->name().c_str();
 #endif
         _connections.erase(connection->name());

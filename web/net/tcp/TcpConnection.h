@@ -12,9 +12,14 @@
 #include <any>
 #include "net/tcp/InetAddress.h"
 #include "net/tcp/Callback.h"
-#include "web/base/Buffer.h"
 #include "base/TimeStamp.h"
 #include "base/Noncopyable.h"
+
+#ifdef USE_RINGBUFFER
+#include "web/base/KRingBuffer.h"
+#else
+#include "web/base/Buffer.h"
+#endif
 
 namespace Tiny_muduo
 {
@@ -136,8 +141,8 @@ namespace Tiny_muduo
             HighWaterMarkCallback _highWaterMarkCallback;    //超出水位实现的回调
             size_t _highWaterMark;
 
-            Buffer::_ptr _inputBuffer;
-            Buffer::_ptr _outputBuffer;
+            Buffer _inputBuffer;
+            Buffer _outputBuffer;
 
             std::shared_ptr<void> shared_context;
             std::any _context;
