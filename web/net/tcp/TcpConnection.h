@@ -14,12 +14,8 @@
 #include "net/tcp/Callback.h"
 #include "base/TimeStamp.h"
 #include "base/Noncopyable.h"
+#include "base/Buffer.h"
 
-#ifdef USE_RINGBUFFER
-#include "web/base/KRingBuffer.h"
-#else
-#include "web/base/Buffer.h"
-#endif
 
 namespace Tiny_muduo
 {
