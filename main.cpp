@@ -46,11 +46,56 @@ int main(int argc, char* argv[])
     server.addServlet("/", [](HttpRequest request, HttpResponse* response) {
         Index(request, response);
     });
+
+    server.addServlet("/index", [](HttpRequest request, HttpResponse* response) {
+        Index(request, response);
+    });
+
     server.addServlet("/login", [](HttpRequest request, HttpResponse* response) {
         Login(request, response);
     });
     server.addServlet("/register", [](HttpRequest request, HttpResponse* response) {
         Register(request, response);
+    });
+
+    server.addServlet("/picture", [](HttpRequest request, HttpResponse* response) {
+        Picture(request, response);
+    });
+
+    server.addServlet("/video", [](HttpRequest request, HttpResponse* response) {
+        Video(request, response);
+    });
+
+    server.addServlet("/blogindex", [](HttpRequest request, HttpResponse* response) {
+        BlogIndex(request, response);
+    });
+
+    server.addServlet("/fileupload", [](HttpRequest request, HttpResponse* response) {
+        FileUpload(request, response);
+    });
+
+    server.addServlet("/filedownload", [](HttpRequest request, HttpResponse* response) {
+        FileDownload(request, response);
+    });
+
+    server.addServlet("/filedownload-src/Everything-1.4.1.1009.x86-Setup.exe", [](HttpRequest request, HttpResponse* response) {
+        FileDownload(request, response);
+    });
+
+    server.addServlet("/filedownload-src/resume.docx", [](HttpRequest request, HttpResponse* response) {
+        FileDownload(request, response);
+    });
+
+    server.addServlet("/Aboutme", [](HttpRequest request, HttpResponse* response) {
+        AboutMe(request, response);
+    });
+
+    server.addServlet("/WebDetails", [](HttpRequest request, HttpResponse* response) {
+        WebDetails(request, response);
+    });
+
+    server.addServlet("/msgboard", [](HttpRequest request, HttpResponse* response) {
+        MsgBoard(request, response);
     });
 
     server.setThreadNum(numThreads);

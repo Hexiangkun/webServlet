@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(webserver)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS " -D USE_DEBUG")
 
 include_directories(/usr/local/include/yaml-cpp
                     /usr/local/include/gtest
@@ -44,7 +45,6 @@ add_executable(webserver main.cpp
 
 set(ALL_LIBS
         yaml-cpp::yaml-cpp
-        gtest
         uuid
         ssl
         crypto
