@@ -3,7 +3,7 @@
 //
 
 #include "HttpResponse.h"
-
+#include "redisconn/RedisConnRAII.h"
 
 namespace Tiny_muduo::Http
 {
@@ -52,8 +52,20 @@ namespace Tiny_muduo::Http
     void HttpResponse::setFile(const std::string &filepath) {
         body_.clear();
         std::string content;
-        readSmallFile(filepath.c_str(), 64*1024*1024,  content, nullptr, nullptr, nullptr);
-        setBody(content);
+//        RedisCache* rc = nullptr;
+//        RedisConnRAII(&rc, RedisPool::getInstance());
+//        if(rc->existKey(filepath)) {
+//            content = rc->getKeyVal(filepath);
+//            setBody(content);
+//            return;
+//        }
+//        else {
+//            readSmallFile((root_path_+filepath).c_str(), 64*1024*1024,  content, nullptr, nullptr, nullptr);
+//            rc->setKeyVal(filepath, content);
+//            setBody(content);
+//        }
+            readSmallFile((root_path_+filepath).c_str(), 64*1024*1024,  content, nullptr, nullptr, nullptr);
+            setBody(content);
     }
 
     void HttpResponse::setFileBody(const std::string &filepath) {
@@ -63,7 +75,7 @@ namespace Tiny_muduo::Http
 
     void HttpResponse::setHtmlBody(const std::string &filepath) {
         header_.setContentType(HttpContentType2Str.at(HttpContentType::HTML));
-        setFile(root_path_+filepath);
+        setFile(filepath);
     }
 
     void HttpResponse::setPlainText(const std::string &content) {

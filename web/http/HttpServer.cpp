@@ -56,7 +56,7 @@ namespace Tiny_muduo::Http
 
     void HttpServer::onMessage(const net::TcpConnection::_ptr& conn, Buffer* buf, TimeStamp receiveTime)
     {
-#ifndef USE_DEBUG
+#ifdef USE_DEBUG
         LOG_INFO << buf->toString() ;
 #endif
         std::shared_ptr<HttpContext> context = std::static_pointer_cast<HttpContext>(conn->getContext());
@@ -87,7 +87,7 @@ void HttpServer::onRequest(const net::TcpConnection::_ptr& conn, const HttpReque
     //m_httpCallback(req, &response);
     Buffer buf;
     response.appendToBuffer(&buf);
-#ifndef USE_DEBUG
+#ifdef USE_DEBUG
     LOG_INFO << buf.toString() ;
 #endif
     conn->send(&buf);

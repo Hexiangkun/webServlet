@@ -25,10 +25,10 @@ namespace Tiny_muduo::Http
             auto url = req.getUrl();
             std::string path(url.getPath());
             if(path == "/") {
-                path = "index.html";
+                path = "/index.html";
             }
 
-            std::filesystem::path p(BASE_ROOT+std::string(path));
+            std::filesystem::path p(BASE_ROOT+path);
             bool exists = std::filesystem::exists(p);
             if(exists) {
                 std::string ext;
@@ -45,18 +45,18 @@ namespace Tiny_muduo::Http
 
                 if(accpetable_exts.find(ext) != accpetable_exts.end()) {
                     resp->setContentType(Ext2HttpContentType.at(ext));
-                    resp->setFile(p.c_str());
+                    resp->setFile(path);
                 }
                 else {
                     resp->setStatusCode(HttpStatusCode::NOT_FOUND);
                     resp->setContentType(HttpContentType::HTML);
-                    resp->setHtmlBody("404.html");
+                    resp->setHtmlBody("/404.html");
                 }
             }
             else {
                 resp->setStatusCode(HttpStatusCode::NOT_FOUND);
                 resp->setContentType(HttpContentType::HTML);
-                resp->setHtmlBody("404.html");
+                resp->setHtmlBody("/404.html");
                 return;
             }
         });

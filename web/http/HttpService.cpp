@@ -4,6 +4,8 @@
 
 #include "HttpService.h"
 #include "sqlconn/MySqlConnectionPool.h"
+#include "redisconn/RedisConnRAII.h"
+#include "base/Md5.h"
 
 namespace Tiny_muduo::Http
 {
@@ -16,7 +18,19 @@ namespace Tiny_muduo::Http
                    R"(</h1></center><hr><center>)" + content +
                    R"(</center></body></html>)";
         }
+
+        std::string checkRedis(const std::string& getStr) {
+            RedisCache* rc = nullptr;
+            RedisConnRAII(&rc, RedisPool::getInstance());
+            assert(rc);
+            if(rc->existKey(getStr)) {
+                return rc->getKeyVal(getStr);
+            }
+            return "";
+        }
     }
+
+
 
     static const std::string STORE_ROOT = "/root/webserver/store/";
 
@@ -27,24 +41,24 @@ namespace Tiny_muduo::Http
             response->setContentType(HttpContentType::HTML);
             switch (code) {
                 case BAD_REQUEST:
-                    response->setHtmlBody("400.html");
+                    response->setHtmlBody("/400.html");
                     break;
                 case UNAUTHORIZED:
-                    response->setHtmlBody("401.html");
+                    response->setHtmlBody("/401.html");
                     break;
                 case FORBIDDEN:
-                    response->setHtmlBody("403.html");
+                    response->setHtmlBody("/403.html");
                     break;
                 case NOT_FOUND:
-                    response->setHtmlBody("404.html");
+                    response->setHtmlBody("/404.html");
                     break;
                 case METHOD_NOT_ALLOWED:
-                    response->setHtmlBody("405.html");
+                    response->setHtmlBody("/405.html");
                     break;
                 case RANGE_NOT_SATISFIABLE:
-                    response->setHtmlBody("416.html");
+                    response->setHtmlBody("/416.html");
                 default:
-                    response->setHtmlBody("400.html");
+                    response->setHtmlBody("/400.html");
                     break;
             }
             return ;
@@ -56,7 +70,11 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("index.html");
+//            std::string now = TimeStamp::now().toFormatString();
+//            response->setBody("<html><head><title>This is title</title></head>"
+//                          "<body><h1>Hello</h1>Now is " + now +
+//                          "</body></html>");
+            response->setHtmlBody("/index.html");
         }
         else {
             response->setStatusCode(HttpStatusCode::BAD_REQUEST);
@@ -68,19 +86,30 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("login.html");
+            response->setHtmlBody("/login.html");
         }
         else if(request.getMethod() == HttpMethod::POST) {
-            ReturnOption<std::string> username = request.getForm().get("username");
-            ReturnOption<std::string> password = request.getForm().get("password");
+            std::string username = request.getForm().get("username").value();
+            std::string password = request.getForm().get("password").value();
             bool login = false;
-            if(username.exist() && password.exist()) {
+            RedisCache* rc = nullptr;
+            RedisConnRAII(&rc, RedisPool::getInstance());
+            assert(rc);
+            if(rc->existKey(username)) {
+                std::string pw = rc->getKeyVal(username);
+                if(password == pw) {
+                    login = true;
+                    response->setCookie(MD5::md5_encryption(username));
+                }
+            }
+            if(!username.empty() && !password.empty() && !login) {
                 std::shared_ptr<MySqlConnection> conn = MySqlConnectionPool::getInstance()->getConnection();
-                MySqlDataReader* rd = conn->ExecuteReader("select passwd from user where username = ?", username.value());
+                MySqlDataReader* rd = conn->ExecuteReader("select passwd from user where username = ?", username);
                 while(rd->Read()) {
                     std::string passwd;
                     rd->GetValues(passwd);
-                    if(passwd == password.value()) {
+                    if(passwd == password) {
+                        rc->setKeyVal(username, password);
                         login = true;
                     }
                 }
@@ -89,12 +118,12 @@ namespace Tiny_muduo::Http
             if(login) {
                 response->setStatusCode(HttpStatusCode::OK);
                 response->setContentType(HttpContentType::HTML);
-                response->setHtmlBody("welcome.html");
+                response->setHtmlBody("/welcome.html");
             }
             else {
                 response->setStatusCode(HttpStatusCode::OK);
                 response->setContentType(HttpContentType::HTML);
-                response->setHtmlBody("error.html");
+                response->setHtmlBody("/error.html");
             }
         }
     }
@@ -103,7 +132,7 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("register.html");
+            response->setHtmlBody("/register.html");
         }
         else if(request.getMethod() == HttpMethod::POST) {
             ReturnOption<std::string> username = request.getForm().get("username");
@@ -119,12 +148,12 @@ namespace Tiny_muduo::Http
             if(register_flag) {
                 response->setStatusCode(HttpStatusCode::OK);
                 response->setContentType(HttpContentType::HTML);
-                response->setHtmlBody("welcome.html");
+                response->setHtmlBody("/welcome.html");
             }
             else {
                 response->setStatusCode(HttpStatusCode::OK);
                 response->setContentType(HttpContentType::HTML);
-                response->setHtmlBody("error.html");
+                response->setHtmlBody("/error.html");
             }
         }
     }
@@ -133,7 +162,7 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("picture.html");
+            response->setHtmlBody("/picture.html");
         }
         else {
             response->setStatusCode(HttpStatusCode::BAD_REQUEST);
@@ -145,7 +174,7 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("video.html");
+            response->setHtmlBody("/video.html");
         }
         else {
             response->setStatusCode(HttpStatusCode::BAD_REQUEST);
@@ -157,7 +186,7 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("blogindex.html");
+            response->setHtmlBody("/blogindex.html");
         }
         else {
             response->setStatusCode(HttpStatusCode::BAD_REQUEST);
@@ -169,7 +198,7 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("fileupload.html");
+            response->setHtmlBody("/fileupload.html");
         }
         else if(request.getMethod() == HttpMethod::POST) {
             auto part = request.getMultiPart().getFile("filename");
@@ -184,7 +213,7 @@ namespace Tiny_muduo::Http
 
                     response->setStatusCode(HttpStatusCode::OK);
                     response->setContentType(HttpContentType::HTML);
-                    response->setHtmlBody("fileupload.html");
+                    response->setHtmlBody("/fileupload.html");
                 }
                 else {
                     response->setStatusCode(HttpStatusCode::BAD_REQUEST);
@@ -206,7 +235,7 @@ namespace Tiny_muduo::Http
         if(request.getPath() == "/filedownload") {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("filedownload.html");
+            response->setHtmlBody("/filedownload.html");
         }
         else  {
             std::filesystem::path p("/root/resources"+request.getPath());
@@ -278,7 +307,7 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("Aboutme.html");
+            response->setHtmlBody("/Aboutme.html");
         }
         else if(request.getMethod() == HttpMethod::POST) {
 
@@ -293,7 +322,7 @@ namespace Tiny_muduo::Http
         if(request.getMethod() == HttpMethod::GET) {
             response->setStatusCode(HttpStatusCode::OK);
             response->setContentType(HttpContentType::HTML);
-            response->setHtmlBody("WebDetails.html");
+            response->setHtmlBody("/WebDetails.html");
         }
         else {
             response->setStatusCode(HttpStatusCode::BAD_REQUEST);
@@ -304,6 +333,6 @@ namespace Tiny_muduo::Http
     void MsgBoard(const HttpRequest& request, HttpResponse* response) {
         response->setStatusCode(HttpStatusCode::OK);
         response->setContentType(HttpContentType::HTML);
-        response->setHtmlBody("msgboard.html");
+        response->setHtmlBody("/msgboard.html");
     }
 }
