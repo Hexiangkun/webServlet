@@ -6,6 +6,7 @@
 #include <cassert>
 #include <sys/uio.h>
 #include <cstring>
+#include <unistd.h>
 #include "Buffer.h"
 
 
@@ -101,6 +102,11 @@ namespace Tiny_muduo
         return result;
     }
 
+    void Buffer::shrink(size_t reserve) {
+        std::vector<char> buf(kCheapPrepend + readableBytes() + reserve);
+        std::copy(peek(), peek() + readableBytes(), buf.begin() + kCheapPrepend);
+        buf.swap(_buffer);
+    }
 
     void Buffer::ensureWritable(size_t len) {
         if(writableBytes() < len) {
@@ -157,26 +163,109 @@ namespace Tiny_muduo
     ssize_t Buffer::readFd(int fd, int *saveErrno) {
         char buf[65536];
         struct iovec iov[2];
-        const size_t writbale = writableBytes();
+        const size_t writable = writableBytes();
         iov[0].iov_base = Begin() + _writerIndex;  //读到_buffer
-        iov[0].iov_len = writbale;
+        iov[0].iov_len = writable;
         iov[1].iov_base = buf;          //读到buf
         iov[1].iov_len = sizeof(buf);
 
-        const int iovcnt = (writbale < sizeof(buf)) ? 2 : 1;
+        const int iovcnt = (writable < sizeof(buf)) ? 2 : 1;
 
         const ssize_t len = ::readv(fd, iov, iovcnt);
         if(len < 0) {
             *saveErrno = errno;
         }
-        else if(static_cast<size_t>(len) <= writbale) {
-            _writerIndex += static_cast<size_t>(len);
+        else if(implicit_cast<size_t>(len) <= writable) {
+            _writerIndex += implicit_cast<size_t>(len);
         }
         else {
             _writerIndex = _buffer.size();
-            append(buf, static_cast<size_t>(len) - writbale);
+            append(buf, static_cast<size_t>(len) - writable);
         }
         return len;
+    }
+
+    ssize_t Buffer::writeFd(int fd, int *Errno) {
+        ssize_t n = ::write(fd, peek(), readableBytes());
+        if(n>0){
+            retrieve(n);
+        }
+        return 0;
+    }
+
+    ssize_t Buffer::readFdET(int fd, int *savedErrno) {
+        char extrabuf[65536];
+        struct iovec vec[2];
+
+        size_t writable = writableBytes();
+        vec[0].iov_base = Begin() + _writerIndex;
+        vec[0].iov_len = writable;
+
+        vec[1].iov_base = extrabuf;
+        vec[1].iov_len = sizeof extrabuf;
+
+        ssize_t readLen = 0;
+        // 不断调用read读取数据
+        for (;;) {
+            ssize_t n = readv(fd, vec, 2);
+            if (n < 0) {
+                if (errno == EAGAIN) {
+                    *savedErrno = errno;
+                    break;
+                }
+                return -1;
+            }
+            else if (n == 0) {
+                // 没有读取到数据，认为对端已经关闭
+                return 0;
+            }
+            else if (static_cast<size_t>(n) <= writable) {
+                // 还没有写满缓冲区
+                _writerIndex += n;
+            }
+            else {
+                // 已经写满缓冲区, 则需要把剩余的buf写进去
+                _writerIndex = _buffer.size();
+                append(extrabuf, n - writable);
+            }
+
+            // 写完后需要更新 vec[0] 便于下一次读入
+            writable = writableBytes();
+            vec[0].iov_base = Begin() + _writerIndex;
+            vec[0].iov_len = writable;
+            readLen += n;
+        }
+        return readLen;
+    }
+
+    ssize_t Buffer::writeFdET(int fd, int *savedErrno) {
+        ssize_t writesum = 0;
+
+        for (;;) {
+            ssize_t n = ::write(fd, peek(), readableBytes());
+            if (n > 0) {
+                writesum += n;
+                retrieve(n); // 更新可读索引
+                if (readableBytes() == 0) {
+                    return writesum;
+                }
+            }
+            else if (n < 0) {
+                if (errno == EAGAIN) //系统缓冲区满，非阻塞返回
+                {
+                    break;
+                }
+                    // 暂未考虑其他错误
+                else {
+                    return -1;
+                }
+            }
+            else {
+                // 返回0的情况，查看write的man，可以发现，一般是不会返回0的
+                return 0;
+            }
+        }
+        return writesum;
     }
 
 }

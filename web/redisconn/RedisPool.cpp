@@ -18,7 +18,7 @@ namespace Tiny_muduo
             _maxConnNum(Tiny_muduo::config::GET_CONFIG<int>("redis.initSize", 8)),
             _sem(_maxConnNum)
     {
-
+        init();
     }
 
     void RedisPool::init() {

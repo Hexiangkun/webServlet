@@ -11,6 +11,7 @@
 #include <string>
 #include <cassert>
 #include <algorithm>
+#include "base/Type.h"
 
 namespace Tiny_muduo
 {
@@ -42,7 +43,6 @@ namespace Tiny_muduo
 
             //返回读指针
             const char* peek() const { return Begin() + _readerIndex; }
-//            char* peek() { return Begin() + _readerIndex; }
 
             const char* findCRLF() const;                       // 查找 `\r\n`
             const char* findCRLF(const char* start) const;      // 从 start 开始查找 `\r\n`
@@ -74,8 +74,11 @@ namespace Tiny_muduo
             void append(const Buffer& buf);
 
             ssize_t readFd(int fd, int* Errno);
+            ssize_t writeFd(int fd, int* Errno);
+            ssize_t readFdET(int fd, int* Errno);
+            ssize_t writeFdET(int fd, int* Errno);
             void ensureWritable(size_t len);    //确保足够长度可写
-
+            void shrink(size_t reserve);
         private:
             char* Begin() { return &*_buffer.begin(); }
             const char* Begin() const { return &*_buffer.begin(); }
