@@ -17,11 +17,11 @@
 #include "net/timer/TimerId.h"
 
 #ifdef USE_LOCKFREEQUEUE
-#include "base/KLockFreeQueue.h"
+#include "base/LockFreeQueue.h"
 #endif
 
 #ifdef USE_SPINLOCK
-#include ".base/KSpinLock.h"
+#include "base/SpinLock.h"
 #endif
 
 namespace Tiny_muduo
