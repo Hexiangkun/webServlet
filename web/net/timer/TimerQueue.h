@@ -11,7 +11,9 @@
 #include "base/TimeStamp.h"
 #include "net/tcp/Channel.h"
 
-
+/**
+ * timerfd_create创建一个文件描述符，当文件在定时器超时的那一刻变得可读
+ * */
 namespace Tiny_muduo
 {
     namespace net
@@ -34,7 +36,7 @@ namespace Tiny_muduo
             TimerId addTimer(TimerCallback cb, TimeStamp when, double interval);
 
             void cancel(TimerId timerId);
-            void adjust(TimerId timerId, TimeStamp now);
+
         private:
             void handleRead();                                              //定时器读事件触发函数
 

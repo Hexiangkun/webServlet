@@ -27,8 +27,9 @@ namespace Tiny_muduo::net
         _acceptSocket.bind(listenAddr);
 
         /**
-         * TcpServer::start() => Acceptor.listen
-         * 有新用户的连接，需要执行一个回调函数(accept => connfd => 打包成Channel => 唤醒subloop)
+         * TcpServer::start() => Acceptor.listen => 绑定到epoll上去，监听读事件的到来，也就是新的连接
+         * 有新用户的连接，需要执行一个回调函数handleNewConnection => TcpServer::newConnection
+         * (accept => connfd => 打包成Channel => 唤醒subloop)
          * 因此向封装了acceptSocket_的channel注册回调函数
          * baseloop监听到有事件发生 => acceptChannel_(listenfd) => 执行该回调函数
          */

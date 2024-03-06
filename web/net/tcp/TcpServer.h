@@ -37,16 +37,16 @@ namespace Tiny_muduo
             void setMessageCallback(const MessageCallback &cb) { _messageCallback = cb; }
             void setWriteCompleteCallback(const WriteCompleteCallback &cb) { _writeCompleteCallback = cb; }
 
-            void setThreadNum(int numThreads) { assert(0 <= numThreads); _loopThreadPool->setThreadNum(numThreads); }
+            void setThreadNum(int numThreads) { assert(0 <= numThreads); _loopThreadPool->setThreadNum(numThreads); }       //设置底层subLoop的个数
 
             EventLoop* getMainLoop() const { return _mainLoop; }
-            const std::string name() const { return _name; }
-            const std::string ipPort() const { return _ip_port; }
+            const std::string& name() const { return _name; }
+            const std::string& ipPort() const { return _ip_port; }
 
-            std::shared_ptr<EventLoopThreadPool> threadPool() { return _loopThreadPool; }
+            std::shared_ptr<EventLoopThreadPool>& threadPool() { return _loopThreadPool; }
 
         private:
-            void newConnection(int sockfd, const InetAddress& peerAddr);
+            void newConnection(int sockFd, const InetAddress& peerAddr);
 
             void removeConnection(const TcpConnectionPtr& connection);
 
@@ -54,23 +54,23 @@ namespace Tiny_muduo
 
         private:
             using ConnectionMap = std::unordered_map<std::string, TcpConnectionPtr >;
-            EventLoop* _mainLoop;
-            const std::string _ip_port;             //传入的IP和Port
+            EventLoop* _mainLoop;                   //主事件循环
+            const std::string _ip_port;             //保存传入的IP和Port
             const std::string _name;                //TcpServer名字
 
-            std::unique_ptr<Acceptor> _acceptor;    //Acceptor负责监视
+            std::unique_ptr<Acceptor> _acceptor;    //Acceptor负责监视新的连接
 
-            std::shared_ptr<EventLoopThreadPool> _loopThreadPool;
+            std::shared_ptr<EventLoopThreadPool> _loopThreadPool;       //线程池
 
             ConnectionCallback _connectionCallback;
             MessageCallback _messageCallback;
             WriteCompleteCallback _writeCompleteCallback;
-            ThreadInitCallback _threadInitCallback;
+            ThreadInitCallback _threadInitCallback;                     //loop线程初始化的回调函数
 
             std::atomic_int _started;
 
-            int _nextConnId;
-            ConnectionMap _connections;
+            int _nextConnId;                            //连接索引
+            ConnectionMap _connections;                 //保存所有连接
         };
     }
 }

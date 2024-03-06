@@ -29,36 +29,6 @@ namespace Tiny_muduo::net
         }
     }
 
-    TimeStamp EpollPoller::poll(EpollPoller::ChannelList& activeChannel, int timeoutMS) {
-        //监听红黑树，将满足事件的文件描述符添加至activeEvents数组中，10秒内没有事件满足，返回0
-        int nfd = ::epoll_wait(_epollFd, &_activeEvents.front(),
-                               static_cast<int>(_activeEvents.size()), timeoutMS);
-        int saveErrno = errno;
-        if(nfd < 0) {
-            if(saveErrno != EINTR) {    //不是终端错误
-                LOG_ERROR << "epoll_wait error: " << saveErrno;
-            }
-        }
-        TimeStamp now(TimeStamp::now());
-        activeChannel.resize(static_cast<unsigned long>(nfd));
-
-        if (nfd) {
-            for (size_t i = 0; i < nfd; i++) {         // to fix
-                activeChannel[i] = static_cast<Channel *>(_activeEvents[i].data.ptr);
-                activeChannel[i]->setRevents(static_cast<int>(_activeEvents[i].events));
-            }
-            if(nfd == _activeEvents.size()) {
-                _activeEvents.resize(_activeEvents.size() * 2);
-            }
-        }
-        else if(nfd == 0) {
-#ifdef USE_DEBUG
-            LOG_DEBUG << "timeout";
-#endif
-        }
-
-        return now;
-    }
 
     TimeStamp EpollPoller::poll(int timeoutMS, ChannelList* activeChannel) {
         //监听红黑树，将满足事件的文件描述符添加至activeEvents数组中，10秒内没有事件满足，返回0
@@ -92,33 +62,6 @@ namespace Tiny_muduo::net
         return now;
     }
 
-    void EpollPoller::addChannel(Channel* channel) {
-        const int index = channel->index();
-
-        if(index == kNew || index == kDeleted) {
-            int fd = channel->fd();
-            if(index == kNew) { //新添加
-                assert(_channels.find(fd) == _channels.end());
-                _channels[fd] = channel;
-            }
-            else {  //重新添加
-                assert(_channels.find(fd) != _channels.end());
-                assert(_channels[fd] == channel);
-            }
-            channel->setIndex(kAdded);
-            update(EPOLL_CTL_ADD, channel);
-        }
-    }
-
-    void EpollPoller::modChannel(Channel* channel) {
-        const int index = channel->index();
-
-        if(index == kAdded) {
-            if(!channel->isNonEvent()) { //删除
-                update(EPOLL_CTL_MOD, channel);
-            }
-        }
-    }
 
     void EpollPoller::removeChannel(Tiny_muduo::net::Channel *channel) {
 
@@ -154,10 +97,10 @@ namespace Tiny_muduo::net
                 assert(_channels.find(fd) != _channels.end());
                 assert(_channels[fd] == channel);
             }
-            channel->setIndex(kAdded);
-            update(EPOLL_CTL_ADD, channel);
+            channel->setIndex(kAdded);          //修改channel状态，此时是已添加的状态
+            update(EPOLL_CTL_ADD, channel);     //向epoll对象添加channel
         }
-        else {
+        else {              //更新channel对应文件描述符的监听事件
             int fd = channel->fd();
             assert(_channels.find(fd) != _channels.end());
             assert(_channels[fd] == channel);
@@ -178,14 +121,6 @@ namespace Tiny_muduo::net
             Channel* channel = static_cast<Channel*>(_activeEvents[i].data.ptr);
             channel->setRevents(static_cast<int>(_activeEvents[i].events));
             activeChannels->push_back(channel);
-        }
-    }
-
-    void EpollPoller::fillActiveChannels(int numEvents, EpollPoller::ChannelList &activeChannels) {
-        for(size_t i = 0; i < numEvents; i++) {
-            Channel* channel = static_cast<Channel*>(_activeEvents[i].data.ptr);
-            channel->setRevents(_activeEvents[i].events);
-            activeChannels.emplace_back(channel);
         }
     }
 

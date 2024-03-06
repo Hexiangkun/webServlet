@@ -18,7 +18,6 @@ namespace
         IgnoreSigPipe()
         {
             ::signal(SIGPIPE, SIG_IGN);
-            // LOG_TRACE << "Ignore SIGPIPE";
         }
     };
 #pragma GCC diagnostic error "-Wold-style-cast"
@@ -268,22 +267,26 @@ namespace Tiny_muduo::net
 
 #ifdef USE_LOCKFREEQUEUE
         _callPendingTasks = true;
-  // 遍历执行回调函数
-  for (;;) {
-    TaskFunc functor;
-    bool flag = _pendingTasks.Try_Dequeue(functor);
-    if (flag) {
-      if (functor != nullptr) {
-        functor();
-      }
-    } else {
-      break;
-    }
-  }
+      // 遍历执行回调函数
+        for (;;) {
+            TaskFunc functor;
+            bool flag = _pendingTasks.Try_Dequeue(functor);
+            if (flag) {
+                if (functor != nullptr) {
+                    functor();
+                }
+            }
+            else {
+                break;
+            }
+        }
+        _callPendingTasks = false;
+        return;
 #else
-        {
+            // 加锁，减少临界区长度
             std::vector<TaskFunc> functors;
             _callPendingTasks = true;
+        {
 #ifdef USE_SPINLOCK
             spinlock.lock();
             functors.swap(pendingFunctors_);
@@ -292,13 +295,13 @@ namespace Tiny_muduo::net
             std::lock_guard<std::mutex> lock(_mutex);
             functors.swap(_pendingTasks);
 #endif
+        }
             // 遍历执行回调函数
             for (auto &functor : functors) {
                 functor();
             }
-        }
 #endif
-
+        _callPendingTasks = false;
 //        std::vector<TaskFunc > funcs;
 //        _callPendingTasks = true;
 //
@@ -310,8 +313,6 @@ namespace Tiny_muduo::net
 //        for(const auto& func : funcs) {
 //            func();
 //        }
-
-        _callPendingTasks = false;
     }
 
     void EventLoop::abortNotInLoopThread()

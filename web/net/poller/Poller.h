@@ -28,15 +28,15 @@ namespace Tiny_muduo::net
         virtual void updateChannel(Channel* channel) = 0;
         virtual void removeChannel(Channel* channel) = 0;
 
-        bool hasChannel(Channel* channel) const;
+        bool hasChannel(Channel* channel) const;            //判断channel是否注册到poller中
 
         static Poller* newDefaultPoller(EventLoop* loop);
 
     protected:
-        std::unordered_map<int, Channel*> _channels;    //sockfd -> Channel
+        std::unordered_map<int, Channel*> _channels;        //sockfd -> Channel
 
     private:
-        EventLoop* _ownerLoop;
+        EventLoop* _ownerLoop;                              //定义poller所属的事件循环EventLoop
     };
 }
 

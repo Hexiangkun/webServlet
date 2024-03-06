@@ -14,6 +14,8 @@ namespace Tiny_muduo
 {
     namespace net
     {
+        //一个EventLoop只属于一个线程
+        //创建EventLoop的线程属于IO线程
         class EventLoopThread
         {
         public:

@@ -10,17 +10,22 @@
 
 namespace Tiny_muduo::net
 {
-    static EventLoop *CheckLoopNotNull(EventLoop *loop)
+    namespace detail
     {
-        if (loop == nullptr)
+        //检查传入mainLoop的指针是否有意义
+        static EventLoop *CheckLoopNotNull(EventLoop *loop)
         {
-            LOG_FATAL << "mainLoop is null!";
+            if (loop == nullptr)
+            {
+                LOG_FATAL << "mainLoop is null!";
+            }
+            return loop;
         }
-        return loop;
     }
+
     TcpServer::TcpServer(Tiny_muduo::net::EventLoop *loop, const Tiny_muduo::net::InetAddress &listenAddr,
                          const std::string &name, Tiny_muduo::net::TcpServer::Option option)
-                         :_mainLoop(CheckLoopNotNull(loop)),
+                         :_mainLoop(detail::CheckLoopNotNull(loop)),
                          _ip_port(listenAddr.toString()),
                          _name(name),
                          _acceptor(std::make_unique<Acceptor>(loop, listenAddr, option == kReusePort)),

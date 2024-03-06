@@ -245,7 +245,7 @@ namespace Tiny_muduo::net
             // 已建立连接的用户，有可读事件发生，调用用户传入的回调操作
             _messageCallback(shared_from_this(), &_inputBuffer, receiveTime);
         }
-        else if(n == 0) {//读出长度为0，说明链接断开
+        else if(n == 0) {           //读出长度为0，说明连接断开
             handleClose();
         }
         else {
@@ -358,7 +358,7 @@ namespace Tiny_muduo::net
             LOG_ERROR << "disconnected, give up writing";
             return;
         }
-        // channel第一次写数据，且缓冲区没有待发送数据
+        // 缓冲区没有待发送数据，尝试直接发送数据到对端，不用监听写事件，加快速度
         if(!_channel->isWriting() && _outputBuffer.readableBytes() == 0) {
             nwrote = sockops::write(_channel->fd(), message, len);
 
@@ -391,7 +391,7 @@ namespace Tiny_muduo::net
      * 把发送缓冲区outputBuffer_的内容全部发送完成
      **/
         assert(remaining <= len);
-        // 说明一次性并没有发送完数据，剩余数据需要保存到缓冲区中，且需要改channel注册写事件
+        // 说明一次性并没有发送完数据，剩余数据需要保存到缓冲区中，且需要channel注册写事件
         if(!faultError && remaining > 0) {
             size_t oldLen = _outputBuffer.readableBytes();
             if((oldLen + remaining >= _highWaterMark) && oldLen < _highWaterMark && _highWaterMarkCallback) {

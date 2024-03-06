@@ -130,6 +130,7 @@ namespace Tiny_muduo
             const InetAddress _localAddr;
             const InetAddress _peerAddr;
 
+            //来自TcpServer
             ConnectionCallback _connectionCallback;          //连接建立/关闭后的回调函数
             MessageCallback _messageCallback;                //收到消息后的回调
             WriteCompleteCallback _writeCompleteCallback;    //消息缓冲区发送完毕后的回调

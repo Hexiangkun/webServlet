@@ -48,7 +48,7 @@ namespace Tiny_muduo
             void loop();                        //开启事件循环
             void quit();                        //退出事件循环
 
-            void runInLoop(TaskFunc task);      //在当前loop中执行任务cb
+            void runInLoop(TaskFunc task);      //在当前loop所在的线程中执行任务cb，哪怕这个函数在别的线程调用
             void queueInLoop(TaskFunc task);    //把cb放入队列中，唤醒loop所在线程，执行cb
 
             // 用来唤醒loop所在的线程的,向wakeupfd_写一个数据，wakeupChannel就发生读事件，当前loop线程就会被唤醒
@@ -99,7 +99,7 @@ namespace Tiny_muduo
 
             std::unique_ptr<TimerQueue> _timerQueue;
 
-            int _wakeupFd;
+            int _wakeupFd;      //比pipe少用一个文件描述符，eventfd缓冲区只有定长8字节
             std::unique_ptr<Channel> _weakUpChannel;
 
             const pid_t _threadId;      //记录loop所在线程id

@@ -119,12 +119,6 @@ namespace Tiny_muduo::net
         _loop->runInLoop(std::bind(&TimerQueue::cancelInLoop, this, timerId));
     }
 
-    void TimerQueue::adjust(Tiny_muduo::net::TimerId timerId, Tiny_muduo::TimeStamp now) {
-
-
-
-    }
-
     void TimerQueue::addTimerInLoop(Timer *timer) {
         _loop->assertInLoopThread();
         bool earliestChanged = insert(timer);       //是否取代了最早的定时触发时间
