@@ -17,7 +17,8 @@ namespace Tiny_muduo::Http
                R"(</center></body></html>)";
     }
 
-    ServletDispatcher::ServletDispatcher() {
+    ServletDispatcher::ServletDispatcher() :_router(std::make_unique<Router>())
+    {
         _defaultServlet = std::make_shared<HttpServlet>([&](const HttpRequest& request, HttpResponse* response){
 
             std::string path(request.getPath());
@@ -95,8 +96,18 @@ namespace Tiny_muduo::Http
         else {
             p = it->second;
         }
-
-        p->handle(request, response);
+        if(p == _defaultServlet) {
+            auto [flag1, flag2, node] = _router->findRoute(request, response);
+            if(flag1 && flag2) {
+                node->handle(request, response);
+            }
+            else {
+                p->handle(request, response);
+            }
+        }
+        else {
+            p->handle(request, response);
+        }
 
         if(postProcess != nullptr) {
             postProcess(request, response);

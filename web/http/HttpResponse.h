@@ -76,6 +76,10 @@ namespace Tiny_muduo::Http
 
         void appendToBuffer(Buffer* output) ;
 
+        std::unordered_map<std::string, std::string>& getParams() {
+            return params_;
+        }
+
     private:
         HttpStatusCode statusCode_;
         HttpVersion version_;
@@ -95,6 +99,9 @@ namespace Tiny_muduo::Http
 
         int fileFd_;        //传输文件时，文件描述符
         off64_t fileLen_;   //文件大小
+
+
+        std::unordered_map<std::string, std::string> params_;
     };
 
 }

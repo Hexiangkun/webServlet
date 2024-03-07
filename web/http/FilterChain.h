@@ -30,7 +30,7 @@ namespace Tiny_muduo::Http
     {
     public:
         void doFilter(const HttpRequest& request, HttpResponse* response) {
-            auto trigeredUrl = request.getUrl().getUrl();
+            auto trigeredUrl = request.getRequestLine().getUrl();
             auto path = curFilter_->getPath();
             //std::cout<<"here is chain: "<<path<<std::endl;
             if(path == trigeredUrl.substr(0, std::min(path.length(), trigeredUrl.length()))){

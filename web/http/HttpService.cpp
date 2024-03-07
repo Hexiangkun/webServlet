@@ -335,4 +335,40 @@ namespace Tiny_muduo::Http
         response->setContentType(HttpContentType::HTML);
         response->setHtmlBody("/msgboard.html");
     }
+
+    void GetComments(const HttpRequest& request, HttpResponse* response) {
+        RedisCache* redisCache;
+        RedisConnRAII(&redisCache, RedisPool::getInstance());
+        std::vector<std::string> comments = redisCache->listRange(kComment, 0, 1000);
+        std::string redisFile = "";
+        for(auto& cm : comments) {
+            redisFile += ("<li>" + cm + "</li>");
+        }
+        response->setContentType(HttpContentType::TXT);
+        response->setStatusCode(HttpStatusCode::OK);
+        response->setBody(redisFile);
+    }
+
+    void SetComments(const HttpRequest& request, HttpResponse* response) {
+        RedisCache* redisCache;
+        RedisConnRAII(&redisCache, RedisPool::getInstance());
+
+        std::string getStr = response->getParams()["val"];
+        redisCache->listPush(kComment, getStr);
+
+        response->setContentType(HttpContentType::TXT);
+        response->setStatusCode(HttpStatusCode::OK);
+        response->setBody("set success");
+    }
+
+    void GetVisitNum(const HttpRequest& request, HttpResponse* response) {
+        RedisCache* redisCache;
+        RedisConnRAII(&redisCache, RedisPool::getInstance());
+
+        std::string redisFile = redisCache->getKeyVal(kNumVisits);
+
+        response->setContentType(HttpContentType::TXT);
+        response->setStatusCode(HttpStatusCode::OK);
+        response->setBody(redisFile);
+    }
 }

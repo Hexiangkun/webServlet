@@ -14,7 +14,7 @@
 #include <vector>
 #include "http/HttpRequest.h"
 #include "http/HttpResponse.h"
-#include "http/FilterChain.h"
+#include "http/base/HttpRoute.h"
 #include "config/Config.h"
 
 namespace Tiny_muduo::Http
@@ -49,11 +49,19 @@ namespace Tiny_muduo::Http
         void dispatch(const HttpRequest& request, HttpResponse* response,
                       HttpServlet::servletFunc preprocess, HttpServlet::servletFunc postProcess);
 
+        void GET(const std::string& path, ContextHandler handler) {
+            _router->AddRouter("GET", path, std::move(handler));
+        }
+
+        void POST(const std::string& path, ContextHandler handler) {
+            _router->AddRouter("POST", path, std::move(handler));
+        }
     private:
         Dispatcher::iterator find_match(const std::string& uri);
 
         Dispatcher _dispatcher;
         HttpServlet::_ptr _defaultServlet;
+        std::unique_ptr<Router> _router;
         ReadWriteLock _mutex;
         static const std::string BASE_ROOT;
     };

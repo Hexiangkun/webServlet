@@ -10,6 +10,8 @@
 
 namespace Tiny_muduo::Http
 {
+    const std::string kComment = "comments";
+    const std::string kNumVisits = "numVisits";
     void DefaultHandle(const HttpRequest& request, HttpResponse* response);
 
     void Index(const HttpRequest& req, HttpResponse* resp);
@@ -33,6 +35,11 @@ namespace Tiny_muduo::Http
     void WebDetails(const HttpRequest& request, HttpResponse* response);
 
     void MsgBoard(const HttpRequest& request, HttpResponse* response);
+
+    void GetComments(const HttpRequest& request, HttpResponse* response);
+    void SetComments(const HttpRequest& request, HttpResponse* response);
+
+    void GetVisitNum(const HttpRequest& request, HttpResponse* response);
 }
 
 

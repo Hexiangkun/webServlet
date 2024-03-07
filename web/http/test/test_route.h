@@ -11,8 +11,20 @@
 #include <gtest/gtest.h>
 #include "http/base/HttpRouter.h"
 #include "http/HttpRequest.h"
+#include "http/base/HttpRoute.h"
+using namespace Tiny_muduo::Http;
+
+
 
 using namespace Tiny_muduo::Http;
+
+void test_route()
+{
+    Trie tie;
+    tie.Insert("/api/sayhi", nullptr);
+    tie.Insert("/api/dyna/:param", nullptr);
+    Node* node = tie.Search("/api/dyna/nihao");
+}
 
 void test_regex_search()
 {

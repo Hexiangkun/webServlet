@@ -50,6 +50,7 @@ namespace Tiny_muduo::Http
         const HttpRequestLine& getRequestLine() const { return requestLine_; }
 
         HttpMethod getMethod() const { return requestLine_.getMethod(); }
+        const std::string getMethodStr() const { return requestLine_.getMethodStr(); }
         const std::string& getPath() const { return requestLine_.getPath(); }
         HttpVersion getVersion() const { return requestLine_.getVersion(); }
 
@@ -135,6 +136,7 @@ namespace Tiny_muduo::Http
         bool hasContentLength_;
         bool hasCookies_;
         bool hasTransferEncoding_;
+
     };
 }
 

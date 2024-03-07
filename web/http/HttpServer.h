@@ -53,6 +53,14 @@ namespace Tiny_muduo::Http
             }
         }
 
+        void GET(const std::string& path, ContextHandler handler) {
+            m_servletDispatcher->GET(path, std::move(handler));
+        }
+
+        void POST(const std::string& path, ContextHandler handler) {
+            m_servletDispatcher->POST(path, std::move(handler));
+        }
+
         void start();
 
     private:
