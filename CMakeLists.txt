@@ -28,6 +28,7 @@ aux_source_directory(web/http HTTP_LIST)
 aux_source_directory(web/sqlconn SQL_CONN_LIST)
 aux_source_directory(web/redisconn REDIS_CONN_LIST)
 aux_source_directory(web/threadpool THREADPOOL_LIST)
+aux_source_directory(web/skiplist SKIPLIST_LIST)
 
 find_package(yaml-cpp REQUIRED)
 
@@ -38,9 +39,10 @@ add_executable(webserver main.cpp
         ${YAML_LIST}
         ${TCP_LIST}             ${POLLER_LIST}              ${TIMER_LIST}
         ${HTTP_LIST}            ${HTTP_BASE_LIST}           ${HTTP_UTIL_LIST}
-        ${SQL_CONN_LIST}        ${REDIS_CONN_LIST}
+        ${SQL_CONN_LIST}        ${REDIS_CONN_LIST}          ${SKIPLIST_LIST}
         ${THIRD_PARTY_LIST}
         ${THREADPOOL_LIST}
+        web/http/FilterChain.h
 )
 
 set(ALL_LIBS

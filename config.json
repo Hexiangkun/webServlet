@@ -36,5 +36,7 @@
     "port": 6379,
     "initSize": 5
   },
-  "resource": "/root/resources"
+  "resource": {
+    "path": "/root/resources"
+  }
 }
