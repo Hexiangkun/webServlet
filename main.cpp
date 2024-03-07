@@ -20,6 +20,18 @@ int main()
         Index(request, response);
     });
 
+    server.addServlet("/get-comments", [](HttpRequest request, HttpResponse* response) {
+        GetComments(request, response);
+    });
+
+    server.addServlet("/get-num-visits", [](HttpRequest request, HttpResponse* response) {
+        GetVisitNum(request, response);
+    });
+
+    server.GET("/set-comments/:val", [](HttpRequest request, HttpResponse* response) {
+        SetComments(request, response);
+    });
+
     server.addServlet("/index", [](HttpRequest request, HttpResponse* response) {
         Index(request, response);
     });

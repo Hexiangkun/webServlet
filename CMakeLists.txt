@@ -42,7 +42,6 @@ add_executable(webserver main.cpp
         ${SQL_CONN_LIST}        ${REDIS_CONN_LIST}          ${SKIPLIST_LIST}
         ${THIRD_PARTY_LIST}
         ${THREADPOOL_LIST}
-        web/http/FilterChain.h
 )
 
 set(ALL_LIBS
@@ -51,6 +50,7 @@ set(ALL_LIBS
         ssl
         crypto
         hiredis
+        gtest
         mysqlclient
 )
 target_link_libraries(webserver ${ALL_LIBS})
