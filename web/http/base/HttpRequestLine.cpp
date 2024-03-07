@@ -2,27 +2,99 @@
 // Created by 37496 on 2024/2/23.
 //
 
-#include "HttpUrl.h"
+#include "HttpRequestLine.h"
 #include "http/util/EncodeUtil.h"
 
 namespace Tiny_muduo::Http
 {
-    HttpUrl::HttpUrl(const std::string &url, bool decode) {
-        if(decode) {
+    HttpRequestLine::HttpRequestLine(bool decode)
+                :_maxRequestLineLen(2048),
+                _decode(decode),
+                _method(HttpMethod::GET),
+                _version(HttpVersion::HTTP_1_0)
+    {
+
+    }
+
+    bool HttpRequestLine::parseRequestLine(const std::string& _requestLine) {
+        std::string_view view(_requestLine);
+        if(view.size() > _maxRequestLineLen){
+            return false;
+        }
+
+        // 寻找行结束位置，没有就需要继续接收数据
+        size_t end = view.find("\r\n");
+        if(end == view.npos){
+            if(view.size() && view[0] != 'G' && view[0] != 'P' && view[0] != 'H'){
+                return false;
+            }
+            return false;
+        }
+
+        size_t i = 0;
+        std::string_view line = view.substr(0, end);
+
+        // 解析method
+        if (line.compare(0, 3, "GET") == 0){
+            _method = HttpMethod::GET;
+            i += 4;
+        }
+        else if (line.compare(0, 4, "POST") == 0){
+            _method = HttpMethod::POST;
+            i += 5;
+        }
+        else if (line.compare(0, 4, "HEAD") == 0){
+            _method = HttpMethod::HEAD;
+            i += 5;
+        }
+        else{
+            return false;
+        }
+        line.remove_prefix(i);
+
+        // 解析url
+        size_t pos = line.find_first_of(' ');
+        if (pos == line.npos){
+            return false;
+        }
+        std::string url = std::string(line.data(), pos);
+        if(_decode) {
             _url = EncodeUtil::urlDecode(url);
         }
         else {
             _url = url;
         }
-        if(decode && !url.empty() && _url.empty()) {
+        if(_decode && !url.empty() && _url.empty()) {
             _state = PARSE_FATAL;
+            return false;
         }
         else {
             _state = parseUrl();
         }
+        if(_state == PARSE_FATAL) {
+            return false;
+        }
+
+        line.remove_prefix(pos + 1);
+        i += pos + 1;
+
+        // 解析version
+        if (line.compare("HTTP/1.0") == 0){
+            _version = HttpVersion::HTTP_1_0;
+        }
+        else if (line.compare("HTTP/1.1") == 0){
+            _version = HttpVersion::HTTP_1_1;
+        }
+        else if (line.compare("HTTP/2.0") == 0){
+            _version = HttpVersion::HTTP_2_0;
+        }
+        else{
+            return false;
+        }
+        return true;
     }
 
-    HttpUrl::STATE HttpUrl::parseUrl() {
+    HttpRequestLine::STATE HttpRequestLine::parseUrl() {
         std::string_view url_view(_url);
         size_t pos;
 

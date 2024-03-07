@@ -7,8 +7,7 @@
 
 namespace Tiny_muduo::Http
 {
-    static const std::string BASE_ROOT = config::GET_CONFIG<std::string>("resource", "/root/resource/");
-    static const uintmax_t small_file_limit = 4 *1024 * 1024; // 4M
+    const std::string ServletDispatcher::BASE_ROOT = config::GET_CONFIG<std::string>("resource.path", "/root/resource");
 
     std::string HttpServlet::basePage(int code, const std::string &content) {
         std::string text = std::to_string(code) + " " + HttpStatusCode2Str.at(code);
@@ -19,12 +18,10 @@ namespace Tiny_muduo::Http
     }
 
     ServletDispatcher::ServletDispatcher() {
-        _defaultServlet = std::make_shared<HttpServlet>([&](const HttpRequest& req, HttpResponse* resp){
+        _defaultServlet = std::make_shared<HttpServlet>([&](const HttpRequest& request, HttpResponse* response){
 
-
-            auto url = req.getUrl();
-            std::string path(url.getPath());
-            if(path == "/") {
+            std::string path(request.getPath());
+            if(path == "/" || path == "/index") {
                 path = "/index.html";
             }
 
@@ -44,19 +41,20 @@ namespace Tiny_muduo::Http
                 };
 
                 if(accpetable_exts.find(ext) != accpetable_exts.end()) {
-                    resp->setContentType(Ext2HttpContentType.at(ext));
-                    resp->setFile(path);
+                    response->setStatusCode(HttpStatusCode::OK);
+                    response->setContentType(Ext2HttpContentType.at(ext));
+                    response->setFile(path);
                 }
                 else {
-                    resp->setStatusCode(HttpStatusCode::NOT_FOUND);
-                    resp->setContentType(HttpContentType::HTML);
-                    resp->setHtmlBody("/404.html");
+                    response->setStatusCode(HttpStatusCode::NOT_FOUND);
+                    response->setContentType(HttpContentType::HTML);
+                    response->setHtmlBody("/404.html");
                 }
             }
             else {
-                resp->setStatusCode(HttpStatusCode::NOT_FOUND);
-                resp->setContentType(HttpContentType::HTML);
-                resp->setHtmlBody("/404.html");
+                response->setStatusCode(HttpStatusCode::NOT_FOUND);
+                response->setContentType(HttpContentType::HTML);
+                response->setHtmlBody("/404.html");
                 return;
             }
         });
@@ -87,7 +85,7 @@ namespace Tiny_muduo::Http
             preprocess(request, response);
         }
 
-        std::string path(request.getUrl().getPath());
+        std::string path(request.getPath());
         HttpServlet::_ptr p = nullptr;
 
         auto it = find_match(path);
@@ -121,4 +119,107 @@ namespace Tiny_muduo::Http
         return _dispatcher.end();
     }
 
+
+    //-------------------------------------------------------------------------------------------------------------//
+
+//    ServletManager::ServletManager()
+//                :staticResourcePath(config::GET_CONFIG<std::string>("resource.path", "/root/resources")),
+//                _beginFilter(std::make_shared<Filter>()),
+//                _endFilter(std::make_shared<Filter>())
+//    {
+//        init();
+//    }
+//
+//    void ServletManager::addServlet(std::shared_ptr<Servlet> servlet) {
+//        for(const auto& path : servlet->getPaths()) {
+//            servlets[path] = servlet;
+//        }
+//    }
+//
+//    bool ServletManager::handleStaticResource(const Tiny_muduo::Http::HttpRequest &request,
+//                                              Tiny_muduo::Http::HttpResponse *response) {
+//        std::string path = request.getPath();
+//        std::filesystem::path p(staticResourcePath+path);
+//        bool exists = std::filesystem::exists(p);
+//        if(exists) {
+//            std::string ext;
+//            if(p.has_extension()) {
+//                ext = std::string(p.extension().c_str());
+//            }
+//
+//            std::unordered_set<std::string> accpetable_exts = {
+//                    ".html", ".htm", ".txt", ".jpg", ".png", ".css",
+//                    ".xml", ".xhtml", ".txt", ".rtf", ".pdf", ".word",
+//                    ".gif", ".jpeg", ".au", ".mpeg", ".mpg",  ".mp4",
+//                    ".avi", ".gz", ".tar", ".js"
+//            };
+//
+//            if(accpetable_exts.find(ext) != accpetable_exts.end()) {
+//                response->setStatusCode(HttpStatusCode::OK);
+//                response->setContentType(Ext2HttpContentType.at(ext));
+//                response->setFile(path);
+//            }
+//            else {
+//                response->setStatusCode(HttpStatusCode::NOT_FOUND);
+//                response->setContentType(HttpContentType::HTML);
+//                response->setHtmlBody("/404.html");
+//            }
+//        }
+//        else {
+//            response->setStatusCode(HttpStatusCode::NOT_FOUND);
+//            response->setContentType(HttpContentType::HTML);
+//            response->setHtmlBody("/404.html");
+//        }
+//    }
+//
+//    void ServletManager::handle404(const Tiny_muduo::Http::HttpRequest &request, Tiny_muduo::Http::HttpResponse *response) {
+//
+//        response->setHttpVersion(request.getVersion());
+//        response->setStatusCode(HttpStatusCode::NOT_FOUND);
+//        response->setBody("<html><head><title>404 Not Found</title></head>"
+//                      "<body><h1>404 Not Found</h1></body></html>");
+//    }
+//
+//    bool ServletManager::handleDynamicResource(const Tiny_muduo::Http::HttpRequest &request, Tiny_muduo::Http::HttpResponse *response){
+//        if(servlets.count(request.getPath()) == 0) {
+//            return false;
+//        }
+//        response->setHttpVersion(request.getVersion());
+//        response->setStatusCode(HttpStatusCode::OK);
+//
+//        switch (request.getMethod())
+//        {
+//            case HttpMethod::GET:
+//                servlets[request.getPath()]->doGet(request, response);
+//                break;
+//            case HttpMethod::POST:
+//                servlets[request.getPath()]->doPost(request, response);
+//                break;
+//            default:
+//                break;
+//        }
+//        return true;
+//    }
+//
+//    void ServletManager::handleRequest(const Tiny_muduo::Http::HttpRequest &request,
+//                                       Tiny_muduo::Http::HttpResponse *response) {
+//
+//        if(handleDynamicResource(request, response)) return;
+//        if(handleStaticResource(request, response)) return;
+//        handle404(request, response);
+//    }
+//
+//    void
+//    ServletManager::handle(const Tiny_muduo::Http::HttpRequest &request, Tiny_muduo::Http::HttpResponse *response) {
+//        if(request.getCookie().get("SESSION_ID").exist()){
+//            request.getSession()->setValue("SESSION_ID", request.getCookie().get("SESSION_ID").value());
+//        }
+//        else{
+////            std::string sessionID = base::TimeStamp().setNow().toCookieString();
+////            //std::cout<<"set SESSIONID: "<<sessionID<<std::endl;
+////            resp->addCookie(Cookie("SESSION_ID", sessionID).setMaxAge(1000).setPath("/"));
+////            request->getSession()->setSessionID(sessionID);
+//        }
+//        _filterManager.startChain(request, response);
+//    }
 }

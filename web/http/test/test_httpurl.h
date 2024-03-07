@@ -8,7 +8,7 @@
 #include <iostream>
 #include <memory>
 #include "web/base/Buffer.h"
-#include "http/base/HttpUrl.h"
+#include "http/base/HttpRequestLine.h"
 using namespace Tiny_muduo::Http;
 
 void print_parseHttpUrl(Tiny_muduo::Http::HttpUrl &url){

@@ -25,17 +25,17 @@ namespace Tiny_muduo::Http
     {
     public:
 
-        explicit HttpResponse(bool close)
+        explicit HttpResponse(bool close, HttpVersion version)
                 : statusCode_(HttpStatusCode::OK),
-                  closeConnection_(close),
-                  version_(HttpVersion::HTTP_1_0),
-                  root_path_(config::GET_CONFIG<std::string>("resource", "/root/webserver/web/resource")),
-                  contentLength_(-1),
-                  isFileBody_(false),
-                  keepAlive_(false),//todo
-                  hasSession_(false),//todo
-                  fileFd_(-1),
-                  fileLen_(0)
+                 version_(version),
+                 closeConnection_(close),
+                 root_path_(config::GET_CONFIG<std::string>("resource.path", "/root/resources")),
+                 contentLength_(-1),
+                 isFileBody_(false),
+                 keepAlive_(false),//todo
+                 hasSession_(false),//todo
+                 fileFd_(-1),
+                 fileLen_(0)
         {
         }
 

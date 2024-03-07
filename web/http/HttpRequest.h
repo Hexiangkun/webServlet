@@ -5,17 +5,15 @@
 #ifndef WEBSERVER_HTTPREQUEST_H
 #define WEBSERVER_HTTPREQUEST_H
 
-
-#include "http/base/HttpSession.h"
+#include "nlohmann/json.h"
+#include "base/TimeStamp.h"
 #include "base/Buffer.h"
 #include "http/util/HttpTypeUtil.h"
-#include "http/base/HttpUrl.h"
+#include "http/base/HttpRequestLine.h"
 #include "http/base/HttpHeader.h"
 #include "http/base/HttpCookie.h"
 #include "http/base/HttpMultiPart.h"
-#include "nlohmann/json.h"
-#include "base/TimeStamp.h"
-
+#include "http/base/HttpSession.h"
 
 
 namespace Tiny_muduo::Http
@@ -49,13 +47,11 @@ namespace Tiny_muduo::Http
         HttpRequest(HttpSessionManager*);
         RET_STATE parseRequest(Buffer* buffer, TimeStamp receiveTime);
 
-        HttpMethod getMethod() const { return method_; }
-        std::string getMethodStr() const { return HttpMethod2Str.at(method_); }
+        const HttpRequestLine& getRequestLine() const { return requestLine_; }
 
-        const HttpUrl& getUrl() const { return reqUrl_; }
-        const std::string getPath() const { return std::string(reqUrl_.getPath());}
-        HttpVersion getVersion() const { return version_; }
-        std::string getVersionStr() const { return HttpVersion2Str.at(version_); }
+        HttpMethod getMethod() const { return requestLine_.getMethod(); }
+        const std::string& getPath() const { return requestLine_.getPath(); }
+        HttpVersion getVersion() const { return requestLine_.getVersion(); }
 
         const HttpHeader& getHeader() const { return header_; }
         const std::string& getBody() const { return body_; }
@@ -78,7 +74,7 @@ namespace Tiny_muduo::Http
         bool okRequest() const { return retState_ == OK_REQUEST; }
 
         // 获取session
-        HttpSession::_ptr getSession(bool autoCreate = true);
+        HttpSession::_ptr getSession() const;
 
         nlohmann::json getJson() const { return json_; }
 
@@ -107,18 +103,15 @@ namespace Tiny_muduo::Http
         RET_STATE retState_;
         int reason_;
 
-        // 记录上一次数据解析结束的位置
-        size_t lastEnd_;
         TimeStamp receiveTime_;
-        const size_t max_requestLine_len_;
         const size_t max_requestHeader_len_;
 
-        HttpMethod method_;
-        HttpUrl reqUrl_;
-        HttpVersion version_;
+        HttpRequestLine requestLine_;
 
         HttpHeader header_;
         HttpCookie cookie_;
+
+
         HttpMultiPart multipart_;
         std::string body_;
         HttpForm form_;

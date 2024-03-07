@@ -12,10 +12,7 @@ namespace Tiny_muduo::Http
             :sessionManager_(sm)
             ,state_(CHECK_REQUESTLINE)
             ,reason_(NONE)
-            ,lastEnd_(0)
-            ,max_requestLine_len_(2048)
             ,max_requestHeader_len_(8192)
-            ,version_(HttpVersion::HTTP_1_0)
             ,chunked_(false)
             ,chunk_size_str_limit(5) // 16^5
             ,cur_chunkedState_(HttpChunkedState::NO_LEN)
@@ -76,84 +73,32 @@ namespace Tiny_muduo::Http
 
     HttpRequest::RET_STATE HttpRequest::parseRequestLine(){
         // 超出最大限制，结束
-        if(data_->readableBytes() > max_requestLine_len_){
-            reason_ |= EXCEED_REQUESTLINE;
-            return BAD_REQUEST;
-        }
-        std::string_view view(data_->peek(), data_->readableBytes());
-
-        // 寻找行结束位置，没有就需要继续接收数据
-        size_t end = view.find("\r\n");
-        if(end == view.npos){
-            if(view.size() && view[0] != 'G' && view[0] != 'P' && view[0] != 'H'){
-                return BAD_REQUEST;
-            }
+        const char* pos_crlf = data_->findCRLF(data_->peek());
+        if(pos_crlf == nullptr) {
             return AGAIN_REQUEST;
         }
 
-        size_t i = 0;
-        std::string_view line = view.substr(0, end);
-
-        // 解析method
-        if (line.compare(0, 3, "GET") == 0){
-            method_ = HttpMethod::GET;
-            i += 4;
+        std::string view(data_->peek(), pos_crlf-data_->peek()+2);
+        data_->retrieve(pos_crlf-data_->peek()+2);
+        bool res = requestLine_.parseRequestLine(view);
+        if(res) {
+            return OK_REQUEST;
         }
-        else if (line.compare(0, 4, "POST") == 0){
-            method_ = HttpMethod::POST;
-            i += 5;
-        }
-        else if (line.compare(0, 4, "HEAD") == 0){
-            method_ = HttpMethod::HEAD;
-            i += 5;
-        }
-        else{
-            return BAD_REQUEST;
-        }
-        line.remove_prefix(i);
-
-        // 解析url
-        size_t pos = line.find_first_of(' ');
-        if (pos == line.npos){
-            return BAD_REQUEST;
-        }
-        reqUrl_ = HttpUrl(std::string(line.data(), pos));
-        if(reqUrl_.getState() == HttpUrl::STATE::PARSE_FATAL){
-            return BAD_REQUEST;
-        }
-
-        line.remove_prefix(pos + 1);
-        i += pos + 1;
-
-        // 解析version
-        if (line.compare("HTTP/1.0") == 0){
-            version_ = HttpVersion::HTTP_1_0;
-        }
-        else if (line.compare("HTTP/1.1") == 0){
-            version_ = HttpVersion::HTTP_1_1;
-        }
-        else if (line.compare("HTTP/2.0") == 0){
-            version_ = HttpVersion::HTTP_2_0;
-        }
-        else{
-            return BAD_REQUEST;
-        }
-
-        line.remove_prefix(8);
-        i += 10;    // 8 + 2
-        data_->retrieve(i);
-
-        return OK_REQUEST;
+        return BAD_REQUEST;
     }
 
 
     HttpRequest::RET_STATE HttpRequest::parseRequestHeader(){
-        std::string_view header(data_->peek(), data_->readableBytes());
+        const char* pos_2crlf = data_->find2CRLF(data_->peek());
+        if(pos_2crlf== nullptr) {
+            return AGAIN_REQUEST;
+        }
+        std::string_view header(data_->peek(), pos_2crlf-data_->peek()+4);
+        data_->retrieve(pos_2crlf-data_->peek()+4);
         std::string_view line_header;
         while (header.size()) {
             // 碰到空行，结束
             if (header.size() >= 2 && header[0] == '\r' && header[1] == '\n') {
-                data_->retrieve(2);
                 /* 解析请求头的内容 */
                 parseKeepAlive();
                 parseAcceptEncoding();
@@ -199,7 +144,6 @@ namespace Tiny_muduo::Http
                         std::string(value.data(), value.size()));
 
             header.remove_prefix(crlf_pos + 2);
-            data_->retrieve(crlf_pos + 2);
         }
 
         return AGAIN_REQUEST;
@@ -233,7 +177,7 @@ namespace Tiny_muduo::Http
                 data_->retrieve(accept_size);
             }
         }
-        else if(method_ == HttpMethod::GET || method_ == HttpMethod::HEAD){
+        else if(getMethod() == HttpMethod::GET || getMethod() == HttpMethod::HEAD){
             /* 空消息体，啥也不干 */
             return OK_REQUEST;
         }
@@ -279,7 +223,7 @@ namespace Tiny_muduo::Http
 
     void HttpRequest::parseKeepAlive(){
         // HTTP1.0以上的协议默认开启长连接
-        if(version_ != HttpVersion::HTTP_1_0){
+        if(getVersion() != HttpVersion::HTTP_1_0){
             keepAlive_ = true;
         }
         auto ret = header_.get("Connection");
@@ -444,14 +388,9 @@ namespace Tiny_muduo::Http
         }
     }
 
-    HttpSession::_ptr HttpRequest::getSession(bool autoCreate){
+    HttpSession::_ptr HttpRequest::getSession() const {
         if(session_){
             return session_;
-        }
-        else if(autoCreate){
-            if(sessionManager_) {
-                return sessionManager_->newSession();
-            }
         }
         return nullptr;
     }

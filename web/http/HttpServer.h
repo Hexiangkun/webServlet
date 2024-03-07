@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <utility>
 #include "http/HttpRequest.h"
 #include "http/HttpResponse.h"
 #include "net/tcp/EventLoop.h"
@@ -39,7 +40,7 @@ namespace Tiny_muduo::Http
             m_server.setThreadNum(numThreads);
         }
 
-        void setServletDispatcher(ServletDispatcher::_ptr servletDispatcher) { m_servletDispatcher = servletDispatcher; }
+        void setServletDispatcher(ServletDispatcher::_ptr servletDispatcher) { m_servletDispatcher = std::move(servletDispatcher); }
 
         void addServlet(const std::string& uri, HttpServlet::servletFunc func) {
             if(m_servletDispatcher != nullptr) {
@@ -48,7 +49,7 @@ namespace Tiny_muduo::Http
         }
         void addServlet(const std::string& uri, HttpServlet::_ptr servlet) {
             if(m_servletDispatcher != nullptr) {
-                m_servletDispatcher->addServlet(uri, servlet);
+                m_servletDispatcher->addServlet(uri, std::move(servlet));
             }
         }
 

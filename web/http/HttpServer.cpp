@@ -80,7 +80,7 @@ void HttpServer::onRequest(const net::TcpConnection::_ptr& conn, const HttpReque
 
     bool close = (connection == "close") ||
                  (req.getVersion() == HttpVersion::HTTP_1_0 && connection != "Keep-Alive");
-    HttpResponse response(close);
+    HttpResponse response(close, req.getVersion());
     if(m_servletDispatcher) {
         m_servletDispatcher->dispatch(req, &response, nullptr, nullptr);
     }
