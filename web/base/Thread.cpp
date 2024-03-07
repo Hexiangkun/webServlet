@@ -28,6 +28,9 @@ namespace Tiny_muduo
         }
     }
 
+    //join，调用线程阻塞等待目标线程终止，然后回收目标线程的资源
+    //detach使主线程不用等待子线程，可以继续往下执行，即使主线程结束，子线程也不一定结束
+
     void Thread::start() {
         _started = true;
         sem_t sem;
@@ -36,12 +39,16 @@ namespace Tiny_muduo
         _thread = std::make_shared<std::thread>([&]() {
             _tid = CurrentThread::tid();        //获取线程id
 
-            sem_post(&sem);                     //v操作
+            sem_post(&sem);                     //v操作，调用这个函数会使其中的一个线程不再阻塞+1
 
             _task();                            //执行任务
         });
-
-        sem_wait(&sem);
+        /**
+         * 这里必须等待获取上面新创建的线程获取tid
+         * 未获取到线程tid之前会阻塞
+         * 如果不适用信号量操作，别的线程访问tid时候，可能当前线程还没有获取到tid
+         * */
+        sem_wait(&sem);                        //阻塞当前线程直到信号量的值大于0，-1
     }
 
     void Thread::join() {

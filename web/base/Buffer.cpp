@@ -15,6 +15,7 @@ namespace Tiny_muduo
     const size_t Buffer::kCheapPrepend = 8;
     const std::size_t Buffer::kInitialSize = 1024;
     const char Buffer::kCRLF[] = "\r\n";
+    const char Buffer::k2CRLF[] = "\r\n\r\n";
 
     Buffer::Buffer(size_t initSize)
         : _buffer(kCheapPrepend + initSize),
@@ -35,6 +36,19 @@ namespace Tiny_muduo
     const char *Buffer::findCRLF() const {
         const char* crlf = std::search(peek(), beginWrite(), kCRLF, kCRLF+2);
         return crlf == beginWrite() ? nullptr : crlf;
+    }
+
+    const char *Buffer::find2CRLF() const {
+        const char* crlf = std::search(peek(), beginWrite(), k2CRLF, k2CRLF+4);
+        return crlf == beginWrite() ? nullptr : crlf;
+    }
+
+    const char *Buffer::find2CRLF(const char *start) const {
+        assert(peek() <= start);
+        assert(start <= beginWrite());
+        const char* crlf = std::search(start, beginWrite(), k2CRLF, k2CRLF+4);
+        return crlf == beginWrite() ? nullptr : crlf;
+        //数据可读处
     }
 
     const char *Buffer::findCRLF(const char *start) const {

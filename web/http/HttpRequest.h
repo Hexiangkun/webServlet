@@ -74,7 +74,7 @@ namespace Tiny_muduo::Http
         bool okRequest() const { return retState_ == OK_REQUEST; }
 
         // 获取session
-        HttpSession::_ptr getSession() const;
+        HttpSession::_ptr getSession(bool autoCreate = true);
 
         nlohmann::json getJson() const { return json_; }
 

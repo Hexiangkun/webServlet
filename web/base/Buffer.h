@@ -46,6 +46,8 @@ namespace Tiny_muduo
 
             const char* findCRLF() const;                       // 查找 `\r\n`
             const char* findCRLF(const char* start) const;      // 从 start 开始查找 `\r\n`
+            const char* find2CRLF() const;                       // 查找 `\r\n\r\n`
+            const char* find2CRLF(const char* start) const;
             const char* findEOL() const;                        // 查找 `\n`
             const char* findEOL(const char* start) const;       // 从 start 开始查找 `\n`
 
@@ -93,7 +95,7 @@ namespace Tiny_muduo
             std::size_t _writerIndex;
 
             static const char kCRLF[];
-
+            static const char k2CRLF[];
         };
 
 }

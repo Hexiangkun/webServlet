@@ -388,9 +388,14 @@ namespace Tiny_muduo::Http
         }
     }
 
-    HttpSession::_ptr HttpRequest::getSession() const {
+    HttpSession::_ptr HttpRequest::getSession(bool autoCreate){
         if(session_){
             return session_;
+        }
+        else if(autoCreate){
+            if(sessionManager_) {
+                return sessionManager_->newSession();
+            }
         }
         return nullptr;
     }
