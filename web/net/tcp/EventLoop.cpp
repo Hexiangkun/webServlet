@@ -122,7 +122,7 @@ namespace Tiny_muduo::net
             **/
             doPendingTask();
         }
-#ifdef DEBUG
+#ifdef USE_DEBUG
         LOG_INFO << "EventLoop " << this << " stop looping";
 #endif
         _looping = false;
@@ -172,7 +172,7 @@ namespace Tiny_muduo::net
     void EventLoop::queueInLoop(EventLoop::TaskFunc task) {
     {
 #ifdef USE_LOCKFREEQUEUE
-        _pendingTasks.Enqueue(std::move(task));
+        _pendingTasks.try_enqueue(task);
 #else
 #ifdef USE_SPINLOCK
         spinlock.lock();
@@ -270,8 +270,8 @@ namespace Tiny_muduo::net
       // 遍历执行回调函数
         for (;;) {
             TaskFunc functor;
-            bool flag = _pendingTasks.Try_Dequeue(functor);
-            if (flag) {
+            bool flag = _pendingTasks.try_dequeue(functor);
+            if(flag) {
                 if (functor != nullptr) {
                     functor();
                 }

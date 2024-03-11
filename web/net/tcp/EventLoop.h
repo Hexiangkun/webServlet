@@ -114,7 +114,7 @@ namespace Tiny_muduo
             std::any _context;
 
 #ifdef USE_LOCKFREEQUEUE
-            LockFreeQueue<TaskFunc> _pendingTasks;
+            moodycamel::ReaderWriterQueue<TaskFunc> _pendingTasks;
 #else
     // 锁类型的选择
     #ifdef USE_SPINLOCK
