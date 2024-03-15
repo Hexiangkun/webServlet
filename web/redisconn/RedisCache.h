@@ -17,9 +17,10 @@ namespace Tiny_muduo
     {
     public:
         RedisCache() = default;
-        ~RedisCache() = default;
+        ~RedisCache() ;
 
         bool init(const char* host, int port);
+        bool connect(const char* host, int port);
 
         bool setKeyVal(const std::string& key, const std::string& val) const;
         bool setKeyVal(const std::string& key, char* val, int sz) const;
@@ -38,8 +39,29 @@ namespace Tiny_muduo
         std::vector<std::string> listRange(const std::string& key, int left, int right) const;
 
         bool flushDB() const;
+
+        //向redis指定的通道channel发布消息
+        bool publish(int channel, const std::string& message);
+
+        //向redis指定通道订阅消息
+        bool subscribe(int channel);
+
+        //向redis指定通道取消订阅消息
+        bool unsubscribe(int channel);
+
+        //在独立线程中接受订阅通道中的消息
+        void observer_channel_message();
+
+        //初始化向业务层上报通道消息的回调函数
+        void init_notify_handler(std::function<void(int, std::string)> fn);
+
+
     private:
         redisContext* _ctx;
+
+        redisContext* _publish_context;
+        redisContext* _subscribe_context;
+        std::function<void(int, std::string)> _notify_message_handler;
         static std::mutex _mutex;
     };
 }

@@ -13,9 +13,9 @@ namespace Tiny_muduo
     }
 
     RedisPool::RedisPool()
-            :_port(Tiny_muduo::config::GET_CONFIG<int>("redis.port", 6379)),
-            _host(Tiny_muduo::config::GET_CONFIG<std::string>("redis.host", "127.0.0.1")),
-            _maxConnNum(Tiny_muduo::config::GET_CONFIG<int>("redis.initSize", 8)),
+            :_port(config::GET_CONFIG<int>("redis.port", 6379)),
+            _host(config::GET_CONFIG<std::string>("redis.host", "127.0.0.1")),
+            _maxConnNum(config::GET_CONFIG<int>("redis.initSize", 8)),
             _sem(_maxConnNum)
     {
         init();
