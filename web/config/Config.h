@@ -8,9 +8,8 @@
 #include <fstream>
 #include <list>
 #include "third_party/nlohmann/json.h"
-//#include "log/Log.h"
 
-namespace Tiny_muduo::config
+namespace config
 {
     static const char* defaultConfigFile = "/root/webserver/config.json";
     class Config
@@ -40,7 +39,6 @@ namespace Tiny_muduo::config
             }
 
             if(_json.type() != nlohmann::json::value_t::object ) {
-//                LOG_FATAL << "json should be object" ;
                 return;
             }
             std::list<std::pair<std::string, nlohmann::json>> all_nodes;

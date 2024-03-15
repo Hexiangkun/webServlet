@@ -5,7 +5,7 @@
 #include "Config.h"
 #include <iostream>
 
-namespace Tiny_muduo::config
+namespace config
 {
     template<>
     std::string Config::query(const char *query_str, const std::string &default_value) {
