@@ -9,7 +9,7 @@
 #include <ctime>
 #include <string>
 
-namespace Tiny_muduo
+namespace SqlConn
 {
     class MySqlConnectionv1
     {
@@ -26,6 +26,8 @@ namespace Tiny_muduo
         
         //查询操作
         MYSQL_RES* query(const std::string& sql);
+
+        MYSQL* getConnection();
         
         void refreshAliveTime() { _aliveTime = clock(); }
         clock_t getAliveTime() const { return clock() - _aliveTime; }   // 返回存活的时间

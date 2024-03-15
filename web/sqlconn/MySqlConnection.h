@@ -18,7 +18,8 @@ Author:
 #include "TmDateTime.h"
 
 
-namespace Tiny_muduo {
+namespace SqlConn
+{
 
     enum class MySqlDbType
     {

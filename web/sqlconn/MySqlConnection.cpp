@@ -7,7 +7,8 @@
 #pragma comment(lib, "Ws2_32.lib")
 #endif
 
-namespace Tiny_muduo {
+namespace SqlConn
+{
 
     const char* ws = " \t\n\r\f\v";
 

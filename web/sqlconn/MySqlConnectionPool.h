@@ -10,12 +10,11 @@
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
-#include "base/Noncopyable.h"
 #include "MySqlConnection.h"
 
-namespace Tiny_muduo
+namespace SqlConn
 {
-    class MySqlConnectionPool : public Noncopyable
+    class MySqlConnectionPool
     {
     public:
         static MySqlConnectionPool* getInstance();   //单例模式

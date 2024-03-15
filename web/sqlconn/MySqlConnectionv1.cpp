@@ -3,9 +3,9 @@
 //
 
 #include "MySqlConnectionv1.h"
+#include "config/Config.h"
 
-
-namespace Tiny_muduo
+namespace SqlConn
 {
     MySqlConnectionv1::MySqlConnectionv1() : _result(nullptr), _row(nullptr)
     {
@@ -18,8 +18,24 @@ namespace Tiny_muduo
         }
     }
 
+    MYSQL *MySqlConnectionv1::getConnection() {
+        return _conn;
+    }
+
     bool MySqlConnectionv1::connect(std::string ip, std::string user, std::string password, std::string dbName,
                                     unsigned int port) {
+        if(ip.empty()) {
+            ip = config::GET_CONFIG<std::string>("mysql.ip", "127.0.0.1");
+        }
+        if(user.empty()) {
+            user = config::GET_CONFIG<std::string>("mysql.username", "root");
+        }
+        if(password.empty()) {
+            password = config::GET_CONFIG<std::string>("mysql.password", "root");
+        }
+        if(dbName.empty()) {
+            dbName = config::GET_CONFIG<std::string>("mysql.dbname", "default");
+        }
         MYSQL* p = mysql_real_connect(_conn, ip.c_str(), user.c_str(), password.c_str(),
                                       dbName.c_str(), port, nullptr, 0);
         if(p == nullptr) {

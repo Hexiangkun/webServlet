@@ -6,7 +6,7 @@
 #include "MySqlConnectionPool.h"
 #include "config/Config.h"
 
-namespace Tiny_muduo
+namespace SqlConn
 {
     MySqlConnectionPool *MySqlConnectionPool::getInstance() {
         static MySqlConnectionPool pool;
@@ -14,15 +14,15 @@ namespace Tiny_muduo
     }
 
     void MySqlConnectionPool::loadConfig() {
-        _ip = Tiny_muduo::config::GET_CONFIG<std::string>("mysql.ip", "127.0.0.1");
-        _user = Tiny_muduo::config::GET_CONFIG<std::string>("mysql.username", "root");
-        _password = Tiny_muduo::config::GET_CONFIG<std::string>("mysql.password", "root");
-        _dbName = Tiny_muduo::config::GET_CONFIG<std::string>("mysql.dbname", "default");
-        _port = Tiny_muduo::config::GET_CONFIG<unsigned int>("mysql.port", 3306);
-        _initSize = Tiny_muduo::config::GET_CONFIG<int>("mysql.initSize", 10);
-        _maxSize = Tiny_muduo::config::GET_CONFIG<int>("mysql.maxSize", 512);
-        _maxIdleTime = Tiny_muduo::config::GET_CONFIG<int>("mysql.maxIdleTime", 30);
-        _timeout = Tiny_muduo::config::GET_CONFIG<int>("mysql.connectionTimeout", 100);
+        _ip = config::GET_CONFIG<std::string>("mysql.ip", "127.0.0.1");
+        _user = config::GET_CONFIG<std::string>("mysql.username", "root");
+        _password = config::GET_CONFIG<std::string>("mysql.password", "root");
+        _dbName = config::GET_CONFIG<std::string>("mysql.dbname", "default");
+        _port = config::GET_CONFIG<unsigned int>("mysql.port", 3306);
+        _initSize = config::GET_CONFIG<int>("mysql.initSize", 10);
+        _maxSize = config::GET_CONFIG<int>("mysql.maxSize", 512);
+        _maxIdleTime = config::GET_CONFIG<int>("mysql.maxIdleTime", 30);
+        _timeout = config::GET_CONFIG<int>("mysql.connectionTimeout", 100);
     }
 
     MySqlConnectionPool::MySqlConnectionPool() :_connectionCount(0){

@@ -8,7 +8,7 @@
 #include <cstring>
 
 
-namespace Tiny_muduo
+namespace SqlConn
 {
     ////////////////////////////////////////////////
     TmDateTime::TmDateTime(int year, int month, int day, int hour, int minute, int second, int millisecond, int microsecond, int naonsecond)
@@ -155,7 +155,7 @@ namespace Tiny_muduo
             (filtm.tm_mon < 1) || (filtm.tm_mon > 12) ||
             (filtm.tm_mday < 1) || (filtm.tm_mday > 31)) return false;
 
-        timptr->ticks = Tiny_muduo::TmDateTime(filtm.tm_year, filtm.tm_mon, filtm.tm_mday, filtm.tm_hour, filtm.tm_min, filtm.tm_sec, mls).ticks;
+        timptr->ticks = SqlConn::TmDateTime(filtm.tm_year, filtm.tm_mon, filtm.tm_mday, filtm.tm_hour, filtm.tm_min, filtm.tm_sec, mls).ticks;
 
         return true;
 

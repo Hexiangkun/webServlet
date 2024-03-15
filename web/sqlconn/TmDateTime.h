@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <stdexcept>
 
-namespace Tiny_muduo
+namespace SqlConn
 {
     /////////////////////////////////////////////
     //Poco::DateTime dt(2000, 1, 1).utcTime() 100us resolution ->  131659776000000000
