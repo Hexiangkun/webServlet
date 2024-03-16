@@ -5,31 +5,54 @@
 #ifndef WEBSERVER_HTTPCONTEXT_H
 #define WEBSERVER_HTTPCONTEXT_H
 
-#include "HttpRequest.h"
+#include "http/HttpRequest.h"
 
 namespace Tiny_muduo::Http
 {
-
     class HttpContext
     {
     public:
-        HttpContext():m_request(std::make_shared<HttpRequest>(nullptr))
+        enum HttpRequestParseState
+        {
+            kExpectRequestLine,
+            kExpectHeaders,
+            kExpectBody,
+            kGotAll,
+        };
+
+        HttpContext()
+                : state_(kExpectRequestLine)
         {
         }
 
-        const HttpRequest::_ptr request() const { return m_request; }
-        HttpRequest::_ptr request() { return m_request; }
+        // default copy-ctor, dtor and assignment are fine
 
+        // return false if any error
         bool parseRequest(Buffer* buf, TimeStamp receiveTime);
 
-        bool gotAll() const { return m_request->complete(); }
-        void reset() {
-            HttpRequest::_ptr request1 = std::make_shared<HttpRequest>(nullptr);
-            m_request.swap(request1);
-            request1 = nullptr;
+        bool gotAll() const
+        { return state_ == kGotAll; }
+
+        void reset()
+        {
+            state_ = kExpectRequestLine;
+            HttpRequest dummy;
+            request_.swap(dummy);
         }
+
+        const HttpRequest& request() const
+        { return request_; }
+
+        HttpRequest& request()
+        { return request_; }
+
     private:
-        HttpRequest::_ptr m_request;
+        bool processRequestLine(const char* begin, const char* end);
+
+        HttpRequestParseState state_;
+        HttpRequest request_;
     };
+
+
 }
 #endif //WEBSERVER_HTTPCONTEXT_H
