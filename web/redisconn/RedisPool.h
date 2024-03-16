@@ -10,7 +10,7 @@
 #include "base/Mutex.h"
 #include "config/Config.h"
 
-namespace Tiny_muduo
+namespace redis
 {
     class RedisPool
     {
@@ -26,7 +26,7 @@ namespace Tiny_muduo
     private:
         std::queue<RedisCache*> _conn_que;
         int _maxConnNum;
-        Semaphore _sem;
+        Tiny_muduo::Semaphore _sem;
         std::mutex _mutex;
         std::string _host;
         int _port;

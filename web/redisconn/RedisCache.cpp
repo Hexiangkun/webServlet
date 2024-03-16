@@ -7,7 +7,7 @@
 #include <utility>
 
 
-namespace Tiny_muduo
+namespace redis
 {
     std::mutex RedisCache::_mutex;
 

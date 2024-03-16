@@ -7,7 +7,7 @@
 
 #include "RedisPool.h"
 
-namespace Tiny_muduo
+namespace redis
 {
     class RedisConnRAII
     {

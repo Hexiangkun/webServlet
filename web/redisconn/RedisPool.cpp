@@ -5,7 +5,7 @@
 #include "RedisPool.h"
 #include "log/Log.h"
 
-namespace Tiny_muduo
+namespace redis
 {
     RedisPool *RedisPool::getInstance() {
         static RedisPool redisPool;
@@ -44,7 +44,7 @@ namespace Tiny_muduo
         return redisCache;
     }
 
-    void RedisPool::freeRedisCache(Tiny_muduo::RedisCache *redisCache) {
+    void RedisPool::freeRedisCache(redis::RedisCache *redisCache) {
         assert(redisCache!= nullptr);
         std::lock_guard<std::mutex> lockGuard(_mutex);
         _conn_que.push(redisCache);

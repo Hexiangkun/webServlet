@@ -10,7 +10,7 @@
 #include <string>
 #include <mutex>
 
-namespace Tiny_muduo
+namespace redis
 {
     const std::string noStr = "nil";
     class RedisCache
