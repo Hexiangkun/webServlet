@@ -3,30 +3,120 @@
 //
 
 #include "HttpResponse.h"
+#include "redisconn/RedisConnRAII.h"
 
 namespace Tiny_muduo::Http
 {
-    void HttpResponse::appendToBuffer(Buffer* output) const
+
+    void HttpResponse::setHttpResponseLine(Tiny_muduo::Http::HttpVersion version, Tiny_muduo::Http::HttpStatusCode code)  {
+        setStatusCode(code);
+        setHttpVersion(version);
+    }
+
+
+    void HttpResponse::setKeepAlive(bool on) {
+        if(on && !closeConnection_){
+            header_.setConnection("Keep-Alive");
+        }
+        else{
+            header_.setConnection("Close");
+        }
+    }
+
+    void HttpResponse::setContentType(HttpContentType contentType) {
+        header_.setContentType(HttpContentType2Str.at(contentType));
+    }
+
+    void HttpResponse::setCookie(const HttpCookie &cookie)  {
+        header_.add("Set-Cookie", cookie.toString());
+    }
+
+    void HttpResponse::setCookie(const std::string &cookieStr){
+        header_.add("Set-Cookie", cookieStr);
+    }
+
+    void HttpResponse::addAtrribute(const std::string &key, const std::string &val) {
+        header_.add(key, val);
+    }
+
+    void HttpResponse::setContentLength(size_t contentLength) {
+        contentLength_ = contentLength;
+        header_.setContentLength(std::to_string(contentLength));
+    }
+
+    void HttpResponse::setRedirect(const std::string &url) {   // 重定向
+        statusCode_ = HttpStatusCode::FOUND;
+        header_.add("Location", url);
+    }
+
+    void HttpResponse::setFile(const std::string &filepath) {
+        body_.clear();
+        std::string content;
+//        RedisCache* rc = nullptr;
+//        RedisConnRAII(&rc, RedisPool::getInstance());
+//        if(rc->existKey(filepath)) {
+//            content = rc->getKeyVal(filepath);
+//            setBody(content);
+//            return;
+//        }
+//        else {
+//            readSmallFile((root_path_+filepath).c_str(), 64*1024*1024,  content, nullptr, nullptr, nullptr);
+//            rc->setKeyVal(filepath, content);
+//            setBody(content);
+//        }
+            readSmallFile((root_path_+filepath).c_str(), 64*1024*1024,  content, nullptr, nullptr, nullptr);
+            setBody(content);
+    }
+
+    void HttpResponse::setFileBody(const std::string &filepath) {
+        body_.clear();
+        isFileBody_ = true;
+    }
+
+    void HttpResponse::setHtmlBody(const std::string &filepath) {
+        header_.setContentType(HttpContentType2Str.at(HttpContentType::HTML));
+        setFile(filepath);
+    }
+
+    void HttpResponse::setPlainText(const std::string &content) {
+        header_.add("Content-Type", HttpContentType2Str.at(HttpContentType::PLAIN));
+        setBody(content);
+    }
+
+    void HttpResponse::setJsonBody(nlohmann::json node) {
+        header_.add("Content-Type", HttpContentType2Str.at(HttpContentType::JSON));
+        auto str = node.dump();
+        setBody(str);
+    }
+
+
+    void HttpResponse::appendToBuffer(Buffer* output)
     {
-        char buf[32];
-        snprintf(buf, sizeof buf, "HTTP/1.0 %d ", statusCode_);
-        output->append(buf);
-        output->append(statusMessage_);
+        output->append(HttpVersion2Str.at(version_) + " ");
+        output->append(std::to_string(statusCode_) + " ");
+        output->append(HttpStatusCode2Str.at(statusCode_));
         output->append("\r\n");
 
         if (closeConnection_)
         {
-            output->append("Connection: close\r\n");
+            header_.setConnection("close");
         }
         else
         {
-            snprintf(buf, sizeof buf, "Content-Length: %zd\r\n", body_.size());
-            output->append(buf);
-            output->append("Connection: Keep-Alive\r\n");
+            if(contentLength_ == -1 ) {
+                if(isFileBody_ && needSendFile()) {
+                    contentLength_ = fileLen_;
+                }
+                else {
+                    contentLength_ = body_.size();
+                }
+                header_.setContentLength(std::to_string(contentLength_));
+            }
+
+            setKeepAlive(true);
         }
 
-        for (const auto& header : headers_)
-        {
+        for(const auto& header : header_.getHeaders()) {
             output->append(header.first);
             output->append(": ");
             output->append(header.second);
@@ -34,7 +124,9 @@ namespace Tiny_muduo::Http
         }
 
         output->append("\r\n");
-        output->append(body_);
+        if(isFileBody_ == false){
+            output->append(body_);
+        }
     }
 
 
