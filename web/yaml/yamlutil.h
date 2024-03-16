@@ -13,7 +13,7 @@
 #include <iostream>
 #include <optional>
 #include <variant>
-#include "json/nlohmann/json.h"
+#include "nlohmann/json.h"
 
 namespace yaml_struct
 {
