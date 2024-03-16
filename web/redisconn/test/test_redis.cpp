@@ -1,18 +1,12 @@
-//
-// Created by 37496 on 2024/2/24.
-//
-
-#ifndef WEBSERVER_TEST_REDIS_H
-#define WEBSERVER_TEST_REDIS_H
 
 #include "redisconn/RedisCache.h"
 #include "redisconn/RedisPool.h"
 #include "redisconn/RedisConnRAII.h"
 #include <iostream>
-using namespace Tiny_muduo;
+
 
 void test_redisCache() {
-    RedisCache* rc = new RedisCache();
+    redis::RedisCache* rc = new redis::RedisCache();
     rc->init("127.0.0.1", 6379);
     bool res = rc->setKeyVal("yunfei", "22");
     if (!res) {
@@ -58,11 +52,11 @@ void test_redisCache() {
 
 void test_redisPool()
 {
-    RedisCache* rc = nullptr;
-    RedisPool::getInstance()->init();
-    RedisConnRAII(&rc, RedisPool::getInstance());
+    redis::RedisCache* rc = nullptr;
+    redis::RedisPool::getInstance()->init();
+    redis::RedisConnRAII(&rc, redis::RedisPool::getInstance());
 
-    bool res = rc->setKeyVal("yunfei", "22");
+    bool res = rc->setKeyVal("hxk", "22");
     if (!res) {
         std::cout << "fail!" << std::endl;
         return;
@@ -70,9 +64,9 @@ void test_redisPool()
     std::cout << "set success!" << std::endl;
 };
 
-void test_main() {
+
+int main() {
     test_redisCache();
     test_redisPool();
 }
 
-#endif //WEBSERVER_TEST_REDIS_H

@@ -3,7 +3,6 @@
 //
 
 #include "RedisPool.h"
-#include "log/Log.h"
 
 namespace redis
 {

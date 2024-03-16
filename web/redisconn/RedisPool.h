@@ -7,7 +7,7 @@
 
 #include <queue>
 #include "RedisCache.h"
-#include "base/Mutex.h"
+#include "Semphore.h"
 #include "config/Config.h"
 
 namespace redis
@@ -26,7 +26,7 @@ namespace redis
     private:
         std::queue<RedisCache*> _conn_que;
         int _maxConnNum;
-        Tiny_muduo::Semaphore _sem;
+        Semaphore _sem;
         std::mutex _mutex;
         std::string _host;
         int _port;
