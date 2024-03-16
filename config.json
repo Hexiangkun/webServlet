@@ -16,6 +16,8 @@
   },
 
   "log": {
+    "destination": "/root/webserver/log",
+    "filename": "basename",
     "open": true,
     "default_format": "%d{%Y-%m-%d %H:%M:%S}%T%t%T%N%T%T[%p]%T[%c]%T%f:%l%T%m%n"
   },
@@ -24,7 +26,7 @@
     "ip": "localhost",
     "port": 3306,
     "username": "root",
-    "password": "",
+    "password": "root",
     "dbname": "yourdb",
     "initSize": 10,
     "maxSize": 1024,
