@@ -413,6 +413,10 @@ namespace Tiny_muduo::net
         _loop->assertInLoopThread();
         if(!_channel->isWriting()) {
             _socket->shutdownWrite();       //优雅关闭套接字
+            /**
+             * 优雅关闭是指，如果发送缓存中还有数据未发出则其发出去，并且收到所有数据的ACK之后，发送FIN包，开始关闭过程。
+             * 而强制关闭是指如果缓存中还有数据，则这些数据都将被丢弃，然后发送RST包，直接重置TCP连接。
+             * */
         }
     }
 

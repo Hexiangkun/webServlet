@@ -43,7 +43,7 @@ private:
     }
 
     // 可读写事件回调
-    void onMessage(const TcpConnectionPtr &conn, Buffer *buf, Tiny_muduo::TimeStamp time)
+    void onMessage(const TcpConnectionPtr &conn, Tiny_muduo::Buffer *buf, Tiny_muduo::TimeStamp time)
     {
         std::string msg = buf->retrieveAllToStr();
         LOG_INFO << conn->name() << " echo " << msg.size() << " bytes, "
@@ -56,7 +56,7 @@ private:
     TcpServer server_;
 };
 
-int main1()
+int main()
 {
 
     LOG_INFO << "pid = " << getpid();
