@@ -6,9 +6,10 @@
 #define WEBSERVER_LOG_H
 
 #include "Logger.h"
-#include "Loglevel.h"
+#include "LogLevel.h"
 #include "AsyncLog.h"
 #include "LogStream.h"
+#include "config/Config.h"
 
 
 #define SET_LOGLEVEL(x) Logger::setLogLevel(x);
@@ -16,22 +17,24 @@
 #define SET_LOG_ASYNC(x) \
     {   \
         if(x != 0){  \
-            static Tiny_muduo::log::AsyncLog g_async_;  \
-            Tiny_muduo::log::Logger::setOutputFunc( [&](const Tiny_muduo::log::LogStream::Buffer& buf){ g_async_.append(buf.data(), buf.length());} );  \
-            Tiny_muduo::log::Logger::setAsync(); \
+            static HLog::AsyncLog g_async_( \
+                    config::GET_CONFIG<std::string>("log.destination", "/root/webserver/log"), \
+                    config::GET_CONFIG<std::string>("log.filename", "basename"));  \
+            HLog::Logger::setOutputFunc( [&](const HLog::LogStream::Buffer& buf){ g_async_.append(buf.data(), buf.length());} );  \
+            HLog::Logger::setAsync(); \
         }   \
     }   \
 
-#define LOG_TRACE if(Tiny_muduo::log::Logger::get_logLevel() <= Tiny_muduo::log::LogLevel::TRACE) \
-    (Tiny_muduo::log::Logger(__FILE__, __LINE__,  Tiny_muduo::log::LogLevel::TRACE, __func__).stream())
+#define LOG_TRACE if(HLog::Logger::get_logLevel() <= HLog::LogLevel::TRACE) \
+    (HLog::Logger(__FILE__, __LINE__,  HLog::LogLevel::TRACE, __func__).stream())
 
-#define LOG_DEBUG if(Tiny_muduo::log::Logger::get_logLevel() <= Tiny_muduo::log::LogLevel::DEBUG)   \
-    (Tiny_muduo::log::Logger(__FILE__, __LINE__, Tiny_muduo::log::LogLevel::DEBUG, __func__).stream())
+#define LOG_DEBUG if(HLog::Logger::get_logLevel() <= HLog::LogLevel::DEBUG)   \
+    (HLog::Logger(__FILE__, __LINE__, HLog::LogLevel::DEBUG, __func__).stream())
 
-#define LOG_INFO Tiny_muduo::log::Logger(__FILE__, __LINE__, Tiny_muduo::log::LogLevel::INFO).stream()
-#define LOG_WARN Tiny_muduo::log::Logger(__FILE__, __LINE__, Tiny_muduo::log::LogLevel::WARN).stream()
-#define LOG_ERROR Tiny_muduo::log::Logger(__FILE__, __LINE__, Tiny_muduo::log::LogLevel::ERROR).stream()
-#define LOG_FATAL Tiny_muduo::log::Logger(__FILE__, __LINE__, Tiny_muduo::log::LogLevel::FATAL).stream()
+#define LOG_INFO HLog::Logger(__FILE__, __LINE__, HLog::LogLevel::INFO).stream()
+#define LOG_WARN HLog::Logger(__FILE__, __LINE__, HLog::LogLevel::WARN).stream()
+#define LOG_ERROR HLog::Logger(__FILE__, __LINE__, HLog::LogLevel::ERROR).stream()
+#define LOG_FATAL HLog::Logger(__FILE__, __LINE__, HLog::LogLevel::FATAL).stream()
 
 
 

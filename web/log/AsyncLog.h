@@ -14,41 +14,40 @@
 #include "LogStream.h"
 
 
-namespace Tiny_muduo
+namespace HLog
 {
-    namespace log
+    class AsyncLog : public Noncopyable
     {
-        class AsyncLog : public Noncopyable
-        {
-            typedef LogBuffer<kLargeSize> Buffer;
-            typedef std::vector<std::unique_ptr<Buffer >> BufferVector;
-            typedef  BufferVector::value_type BufferPtr;
+        typedef LogBuffer<kLargeSize> Buffer;
+        typedef std::vector<std::unique_ptr<Buffer >> BufferVector;
+        typedef  BufferVector::value_type BufferPtr;
 
-        public:
-            AsyncLog(const std::string& basename = "basename", int flush_interval=3, off_t roll_size = 20*1024*1024);
-            ~AsyncLog();
+    public:
+        AsyncLog(const std::string& filepath, const std::string& basename = "basename", int flush_interval=3, off_t roll_size = 20*1024*1024);
+        ~AsyncLog();
 
-            void append(const char* buf, int len);
+        void append(const char* buf, int len);
 
-            void stop();
+        void stop();
 
-        private:
-            void writeThread();
+    private:
+        void writeThread();
 
-        private:
-            const int _flush_interval;
-            const off_t _roll_size;
-            std::string _basename;
-            std::atomic<bool> _running;
-            std::thread _thread;
-            std::mutex _mutex;
-            std::condition_variable _cond;
-            BufferPtr _cur;
-            BufferPtr _next;
-            BufferVector _buffers;
-        };
-    }
+    private:
+        const int _flush_interval;
+        const off_t _roll_size;
+        std::string _filepath;
+        std::string _basename;
+        std::atomic<bool> _running;
+        std::thread _thread;
+        std::mutex _mutex;
+        std::condition_variable _cond;
+        BufferPtr _cur;
+        BufferPtr _next;
+        BufferVector _buffers;
+    };
 }
+
 
 
 #endif //WEBSERVER_ASYNCLOG_H

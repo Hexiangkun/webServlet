@@ -9,59 +9,58 @@
 #include <string>
 #include <mutex>
 #include <memory>
-#include "base/Noncopyable.h"
+#include "Noncopyable.h"
 
 
-namespace Tiny_muduo
+namespace HLog
 {
-    namespace log
+    const int FileBufSize = 64*1024;
+    template<int SIZE>
+    class FileWriter : public Noncopyable
     {
-        const int FileBufSize = 64*1024;
-        template<int SIZE>
-        class FileWriter : public Noncopyable
-        {
-        public:
-            explicit FileWriter(const std::string& filename);
-            ~FileWriter();
+    public:
+        explicit FileWriter(const std::string& filename);
+        ~FileWriter();
 
-            off_t getWrittenBytes() const;
+        off_t getWrittenBytes() const;
 
-            void append(const char* line, const size_t len);
-            void append(const std::string& line);
+        void append(const char* line, const size_t len);
+        void append(const std::string& line);
 
-            void flush();
-        private:
-            FILE* _file;
-            char _buffer[SIZE];
-            off_t _written_bytes;
+        void flush();
+    private:
+        FILE* _file;
+        char _buffer[SIZE];
+        off_t _written_bytes;
 
-        };
+    };
 
 
-        class LogFile : public Noncopyable
-        {
-        public:
-            LogFile(const std::string& basename, off_t roll_size);
-            ~LogFile();
+    class LogFile : public Noncopyable
+    {
+    public:
+        LogFile(const std::string& filepath, const std::string& basename, off_t roll_size);
+        ~LogFile();
 
-            void append(const char* line, const size_t len);
-            void append(const char* line, const int len);
-            void flush();
-            void rollFile();
+        void append(const char* line, const size_t len);
+        void append(const char* line, const int len);
+        void flush();
+        void rollFile();
 
-            void setBaseName(const std::string& basename);
-        private:
+        void setBaseName(const std::string& basename);
+    private:
 
-            std::string getLogFileName();
+        std::string getLogFileName();
 
-        private:
-            std::string _baseName;
-            const off_t _roll_size;       //日志文件大小
-            int _file_index;         //日志文件id
-            std::mutex _mutex;
-            std::unique_ptr<FileWriter<FileBufSize>> _file;
-        };
-    }
+    private:
+        std::string _baseName;
+        std::string _filepath;
+        const off_t _roll_size;       //日志文件大小
+        int _file_index;              //日志文件id
+        std::mutex _mutex;
+        std::unique_ptr<FileWriter<FileBufSize>> _file;
+    };
 }
+
 
 #endif //WEBSERVER_LOGFILE_H
