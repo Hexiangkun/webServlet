@@ -22,22 +22,14 @@ namespace SqlConn
         return _conn;
     }
 
-    bool MySqlConnectionv1::connect(std::string ip, std::string user, std::string password, std::string dbName,
-                                    unsigned int port) {
-        if(ip.empty()) {
-            ip = config::GET_CONFIG<std::string>("mysql.ip", "127.0.0.1");
-        }
-        if(user.empty()) {
-            user = config::GET_CONFIG<std::string>("mysql.username", "root");
-        }
-        if(password.empty()) {
-            password = config::GET_CONFIG<std::string>("mysql.password", "root");
-        }
-        if(dbName.empty()) {
-            dbName = config::GET_CONFIG<std::string>("mysql.dbname", "default");
-        }
-        MYSQL* p = mysql_real_connect(_conn, ip.c_str(), user.c_str(), password.c_str(),
-                                      dbName.c_str(), port, nullptr, 0);
+    bool MySqlConnectionv1::connect(const std::string &ip, const std::string &user, const std::string &password,
+                                    const std::string &dbName, unsigned int port) {
+
+        MYSQL* p = mysql_real_connect(_conn, "127.0.0.1",
+                                             "root",
+                                            "root",
+                                            "yourdb",
+                                            port, nullptr, 0);
         if(p == nullptr) {
             return false;
         }

@@ -18,8 +18,8 @@ namespace SqlConn
         ~MySqlConnectionv1();
         
         //连接数据库
-        bool connect(std::string ip, std::string user, std::string password,
-                     std::string dbName, unsigned int port = 3306);
+        bool connect(const std::string& ip, const std::string& user, const std::string& password,
+                     const std::string& dbName, unsigned int port = 3306);
         
         //更新操作 insert | delete | update
         bool update(const std::string& sql);
