@@ -20,8 +20,8 @@ add_subdirectory(web/config)
 add_subdirectory(web/log)
 add_subdirectory(web/redisconn)
 add_subdirectory(web/sqlconn)
+add_subdirectory(web/yaml)
 
 add_subdirectory(web/net)
 add_subdirectory(web/chat)
-
 add_subdirectory(web/http)

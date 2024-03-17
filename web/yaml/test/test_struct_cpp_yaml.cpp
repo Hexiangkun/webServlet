@@ -2,9 +2,6 @@
 // Created by 37496 on 2024/2/4.
 //
 
-#ifndef WEBSERVER_TEST_STRUCT_CPP_YAML_H
-#define WEBSERVER_TEST_STRUCT_CPP_YAML_H
-
 #include <iostream>
 #include <cassert>
 #include <tuple>
@@ -14,7 +11,7 @@
 #include <variant>
 #include <fstream>
 #include "yaml/struct_cpp_yaml.h"
-#include "yaml/tostring.h"
+#include "yaml/ToString.h"
 
 enum class AccountType : uint8_t {
     Personal = 1,
@@ -44,9 +41,9 @@ YCS_ADD_STRUCT(AccountInfo, flag, name, address, num, msec, tuple, map_tuple)
 std::string to_string(const AccountInfo& aif) {
     std::stringstream ss;
     ss << "AccountInfo"
-       << " name=" << aif.name << " address=" << hxk_muduo::to_string(aif.address) << " num=" << hxk_muduo::to_string(aif.num)
-       << " msec=" << aif.msec.count() << " tuple=" << hxk_muduo::to_string(aif.tuple) << " map_tuple=" << hxk_muduo::to_string(aif.map_tuple)
-       << " flag=" << hxk_muduo::to_string(aif.flag);
+       << " name=" << aif.name << " address=" << HYaml::to_string(aif.address) << " num=" << HYaml::to_string(aif.num)
+       << " msec=" << aif.msec.count() << " tuple=" << HYaml::to_string(aif.tuple) << " map_tuple=" << HYaml::to_string(aif.map_tuple)
+       << " flag=" << HYaml::to_string(aif.flag);
     return ss.str();
 }
 
@@ -65,9 +62,9 @@ YCS_ADD_STRUCT(DefaultTest, flag, name, address, num, msec, tuple, map_tuple, ac
 std::string to_string(const DefaultTest& aif) {
     std::stringstream ss;
     ss << "DefaultTest"
-       << " name=" << aif.name << " address=" << hxk_muduo::to_string(aif.address) << " num=" << hxk_muduo::to_string(aif.num)
-       << " msec=" << aif.msec.count() << " tuple=" << hxk_muduo::to_string(aif.tuple) << " map_tuple=" << hxk_muduo::to_string(aif.map_tuple)
-       << " flag=" << hxk_muduo::to_string(aif.flag);
+       << " name=" << aif.name << " address=" << HYaml::to_string(aif.address) << " num=" << HYaml::to_string(aif.num)
+       << " msec=" << aif.msec.count() << " tuple=" << HYaml::to_string(aif.tuple) << " map_tuple=" << HYaml::to_string(aif.map_tuple)
+       << " flag=" << HYaml::to_string(aif.flag);
     return ss.str();
 }
 
@@ -91,12 +88,18 @@ YCS_ADD_STRUCT(Config, ch, price, count, content, map, account_info, vec, set_ve
 
 std::string to_string(const Config& cfg) {
     std::stringstream ss;
-    ss << "Config"
-       << " price=" << std::to_string(cfg.price) << " count=" << (int32_t)cfg.count
-       << " content=" << cfg.content << " map=" << hxk_muduo::to_string(cfg.map) << " account_info=" << to_string(cfg.account_info)
-       << " vec=" << hxk_muduo::to_string(cfg.vec) << " set_vec=" << hxk_muduo::to_string(cfg.set_vec) << " account_type=" << to_string(cfg.account_type)
-       << " ch=" << hxk_muduo::to_string(cfg.ch) << " v1=" << hxk_muduo::to_string(std::get<1>(cfg.v1)) << " default_test=" << to_string(cfg.default_test)
-       << " default_str=" << hxk_muduo::to_string(cfg.default_str) << " default_opt=" << hxk_muduo::to_string(cfg.default_opt);
+    ss << "Config" << "\n" 
+       << "content= " << cfg.content << "\n"
+       << "map= " << HYaml::to_string(cfg.map) << "\n"
+       << "account_info= " << to_string(cfg.account_info) << "\n"
+       << "vec= " << HYaml::to_string(cfg.vec) << "\n"
+       << "set_vec= " << HYaml::to_string(cfg.set_vec) << "\n"
+       << "account_type= " << to_string(cfg.account_type) << "\n"
+       << "ch= " << HYaml::to_string(cfg.ch) << "\n"
+       << "v1= " << HYaml::to_string(std::get<1>(cfg.v1)) << "\n"
+       << "default_test= " << to_string(cfg.default_test) << "\n"
+       << "default_str= " << HYaml::to_string(cfg.default_str) << "\n"
+       << "default_opt= " << HYaml::to_string(cfg.default_opt);
     return ss.str();
 
 }
@@ -171,7 +174,7 @@ namespace test
 
     void test_from_yaml()
     {
-        auto [cfg, error] = yaml_struct::from_yaml<Config>("/root/webserver/config/test/test_config.yaml");
+        auto [cfg, error] = yaml_struct::from_yaml<Config>("../web/yaml/test/test_config.yaml");
         if(cfg) {
             std::cout << cfg->count << std::endl;
             std::cout << to_string(cfg.value()) << std::endl;
@@ -183,4 +186,6 @@ namespace test
 
 }
 
-#endif //WEBSERVER_TEST_STRUCT_CPP_YAML_H
+int main() {
+    test::test_from_yaml();
+}
