@@ -20,7 +20,6 @@ namespace redis
         ~RedisCache() ;
 
         bool init(const char* host, int port);
-        bool connect(const char* host, int port);
 
         bool setKeyVal(const std::string& key, const std::string& val) const;
         bool setKeyVal(const std::string& key, char* val, int sz) const;
@@ -40,6 +39,9 @@ namespace redis
 
         bool flushDB() const;
 
+        //连接redis服务器
+        bool connect(const char* host, int port);
+
         //向redis指定的通道channel发布消息
         bool publish(int channel, const std::string& message);
 
@@ -55,14 +57,16 @@ namespace redis
         //初始化向业务层上报通道消息的回调函数
         void init_notify_handler(std::function<void(int, std::string)> fn);
 
-
     private:
         redisContext* _ctx;
-
-        redisContext* _publish_context;
-        redisContext* _subscribe_context;
-        std::function<void(int, std::string)> _notify_message_handler;
         static std::mutex _mutex;
+
+        //负责publish消息
+        redisContext* _publish_context;
+        //负责subscribe消息
+        redisContext* _subscribe_context;
+        //回调操作，收到订阅的消息，给service层上报
+        std::function<void(int, std::string)> _notify_message_handler;
     };
 }
 
