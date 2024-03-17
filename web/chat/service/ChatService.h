@@ -22,14 +22,19 @@ typedef std::function<void(const Tiny_muduo::net::TcpConnection::_ptr& , nlohman
 class ChatService
 {
 public:
+    //单例模式
     static ChatService* getInstance();
-
+    //暴露给chatServer接口，用int整型匹配对应的处理函数
     msgHandler getHandler(int msgId);
 
+    //登录
     void login(const Tiny_muduo::net::TcpConnection::_ptr& connection, nlohmann::json& js, Tiny_muduo::TimeStamp stamp);
+    //注册
     void regis(const Tiny_muduo::net::TcpConnection::_ptr& connection, nlohmann::json& js, Tiny_muduo::TimeStamp stamp);
 
+    //处理客户端异常退出
     void clientCloseException(const Tiny_muduo::net::TcpConnection::_ptr& connection);
+    //处理服务器宕机
     void serverCloseException();
 
     void oneChat(const Tiny_muduo::net::TcpConnection::_ptr& connection, nlohmann::json& js, Tiny_muduo::TimeStamp stamp);
@@ -64,6 +69,7 @@ private:
 
     redis::RedisCache _redisModel;
 
+    //订阅频道有更新，获取消息
     void redisNotifyHandler(int ,std::string);
 };
 

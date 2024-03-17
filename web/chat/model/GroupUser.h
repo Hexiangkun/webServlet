@@ -7,6 +7,7 @@
 
 #include "User.h"
 
+//用户在群里的属性，多了一个角色
 class GroupUser : public User
 {
 public:

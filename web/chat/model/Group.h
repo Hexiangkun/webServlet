@@ -29,7 +29,7 @@ private:
     int _gID;                      // 群聊的id
     std::string _gName;            // 群聊id的组名
     std::string _gDesc;            // 这个群组的描述describe
-    std::vector<GroupUser> _users; // 一个组有几个用户？
+    std::vector<GroupUser> _users; // 一个组有几个用户
 };
 
 #endif //WEBSERVER_GROUP_H

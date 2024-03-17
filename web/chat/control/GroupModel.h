@@ -17,6 +17,7 @@ public:
     // 加入群组里添加一个用户
     bool addUser(int userId, int groupId, const std::string& role);
 
+    //查询群组的描述信息
     Group query(int groupId);
 
     // 查询用户所在群组信息

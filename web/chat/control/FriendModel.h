@@ -10,8 +10,10 @@
 
 class FriendModel {
 public:
+    //添加一个好友
     bool insert(int id, int fid);
 
+    //返回自身id对应的好友列表
     void query(int userId, std::vector<std::string>& result);
 };
 

@@ -28,6 +28,7 @@ bool GroupModel::createGroup(Group &group) {
 bool GroupModel::addUser(int userId, int groupId, const std::string &role) {
     // 1.组装sql语句
     char sql[1024] = {0};
+    // 检查groupId的合法性
     sprintf(sql, "select id from allgroup where id = %d", groupId);
 
     SqlConn::MySqlConnectionv1 mysql;
@@ -35,7 +36,7 @@ bool GroupModel::addUser(int userId, int groupId, const std::string &role) {
     {
         MYSQL_RES* res = mysql.query(sql);
         if(res && mysql_fetch_row(res) != nullptr) {
-            ::bzero(sql, 0);
+            ::memset(sql, 0, sizeof sql);
             sprintf(sql, "insert into groupuser values(%d, %d, '%s')",
                     groupId, userId, role.c_str());
             mysql_free_result(res);

@@ -30,14 +30,15 @@ bool addSignal(int signum)
 int main(int argc, char const *argv[])
 {
     // 注册一个信号捕捉。捕捉SIGINT 2号信号 Ctrl + C
-    if(argc < 2)
-    {
-        std::cerr << "start chatServer LIKE: ./server 6000" << std::endl;
-        exit(-1);
-    }
+//    if(argc < 2)
+//    {
+//        std::cerr << "start chatServer LIKE: ./server 6000" << std::endl;
+//        exit(-1);
+//    }
     addSignal(SIGINT);
     Tiny_muduo::net::EventLoop lp;
-    int port = atoi(argv[1]);
+    int port = 6000;
+            //atoi(argv[1]);
     Tiny_muduo::net::InetAddress addr(static_cast<uint16_t>(port));
     ChatServer server(&lp, addr, "chatserver");
     server.setThreadNum(2);

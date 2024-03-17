@@ -7,6 +7,7 @@
 
 #include <string>
 
+//映射在数据库中的User表
 class User
 {
 public:

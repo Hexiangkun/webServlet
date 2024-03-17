@@ -21,6 +21,7 @@ ChatService::ChatService() {
 }
 
 ChatService *ChatService::getInstance() {
+    //饿汉模式，线程安全的
     static ChatService service;
     return &service;
 }
@@ -120,8 +121,9 @@ void ChatService::login(const Tiny_muduo::net::TcpConnection::_ptr &connection, 
                         groupMem.push_back(info.dump());
                     }
                     oneGroupInfo[GROUP_MEMS] = groupMem;
-                    groupInfos.push_back(oneGroupInfo);
+                    groupInfos.push_back(oneGroupInfo.dump());
                 }
+                response[GROUP_LIST] = groupInfos;
             }
 
             //在redis中订阅频道--》自身的id。如果别人向我这个id频道发了消息，我需要被提醒然后感知消息
@@ -138,14 +140,14 @@ void ChatService::login(const Tiny_muduo::net::TcpConnection::_ptr &connection, 
 
                     //推送的消息
                     nlohmann::json pushMsg;
-                    pushMsg[MSG_ID] = FRIEND_OFFLINE;
+                    pushMsg[MSG_ID] = FRIEND_ONLINE;
                     pushMsg[ID] = user.getId();
                     pushMsg[TIME] = tt;
                     if(_userConnMap.count(id)) {
                         _userConnMap[id]->send(pushMsg.dump());
                     }//此服务器上没有这个好友的socket，需要判断是否在其他服务器上
                     else if(_userModel.query(id).getState() == "online") {
-                        //用户在线，讲消息发送道消息队列上
+                        //用户在线，将消息发送到消息队列上
                         _redisModel.publish(id, pushMsg.dump());
                     }
                 }
@@ -179,6 +181,8 @@ void ChatService::regis(const Tiny_muduo::net::TcpConnection::_ptr &connection, 
     connection->send(response.dump() + "\n");
 }
 
+//客户端断开连接，服务端不会收到json，业务层面不会做到对客户端异常退出的检测
+//TcpConnection会感知到，
 void ChatService::clientCloseException(const Tiny_muduo::net::TcpConnection::_ptr &connection) {
     User user;
     {
@@ -199,6 +203,7 @@ void ChatService::clientCloseException(const Tiny_muduo::net::TcpConnection::_pt
     }
 }
 
+//处理服务器宕机
 void ChatService::serverCloseException() {
     _userModel.offlineAll();
 }
@@ -212,10 +217,11 @@ void ChatService::oneChat(const Tiny_muduo::net::TcpConnection::_ptr &connection
     ID: the sender,
     FRIEND_ID: the reciver,
     MSG: the chat message
+    TIME: cur time
 }
 */
     /*
-            js           js
+    json           json
 消息发送方 -----> 服务器 -----> 消息接收方
  */
     int destId = js[FRIEND_ID].get<int>();
@@ -228,7 +234,7 @@ void ChatService::oneChat(const Tiny_muduo::net::TcpConnection::_ptr &connection
             return;
         }
     }
-
+    //当前客户在其他服务器上，把消息发送到redis
     if(_userModel.query(destId).getState() == "online") {
         _redisModel.publish(destId, js.dump());
     }
@@ -239,6 +245,11 @@ void ChatService::oneChat(const Tiny_muduo::net::TcpConnection::_ptr &connection
 
 }
 
+/**
+ * MSG_ID:
+ * ID:
+ * FRIEND_ID:
+ * */
 
 void ChatService::addFriend(const Tiny_muduo::net::TcpConnection::_ptr &connection, nlohmann::json &js,
                             Tiny_muduo::TimeStamp stamp) {
@@ -295,6 +306,7 @@ void ChatService::createGroup(const Tiny_muduo::net::TcpConnection::_ptr &connec
     connection->send(response.dump());
 }
 
+//添加用户至群组
 void ChatService::addToGroup(const Tiny_muduo::net::TcpConnection::_ptr &connection, nlohmann::json &js,
                              Tiny_muduo::TimeStamp stamp) {
     int userId = js[ID].get<int>();
@@ -366,15 +378,17 @@ void ChatService::logout(const Tiny_muduo::net::TcpConnection::_ptr &connection,
     User user;
     user.setId(js[ID].get<int>());
     user.setState("offline");
-
+    //删除操作，上锁
     {
         std::unique_lock<std::mutex> lock(_connMtx);
         _userConnMap.erase(user.getId());
     }
-
+    //修改数据库
     _userModel.updateState(user);
+    //redis取消订阅
     _redisModel.unsubscribe(user.getId());
 
+    //服务器向该用户所有好友推送，此用户已下线
     std::vector<std::string> fvec;
     _friendModel.query(user.getId(), fvec);
     if(!fvec.empty()) {
@@ -407,5 +421,7 @@ void ChatService::redisNotifyHandler(int id, std::string msg) {
     auto iter = _userConnMap.find(id);
     if(iter!=_userConnMap.end()) {
         iter->second->send(msg);
+        return;
     }
+    _offlineMsgModel.insert(id, msg);
 }
