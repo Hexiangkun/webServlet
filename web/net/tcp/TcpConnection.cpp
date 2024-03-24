@@ -88,6 +88,10 @@ namespace Tiny_muduo::net
         }
     }
 
+    void TcpConnection::send(const void *message, size_t len) {
+        send(std::string(static_cast<const char*>(message), len));
+    }
+
     void TcpConnection::send(Buffer *buf) {
         if(_state == kConnected) {
             if(_loop->isInLoopThread()) {
@@ -95,7 +99,7 @@ namespace Tiny_muduo::net
                 buf->retrieveAll();
             }
             else {
-                void(TcpConnection::*fp)(const std::string& message) = &TcpConnection::send;
+                void(TcpConnection::*fp)(const std::string& message) = &TcpConnection::sendInLoop;
                 _loop->runInLoop(std::bind(fp, this, buf->retrieveAllToStr()));
             }
         }

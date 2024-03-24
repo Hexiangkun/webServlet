@@ -41,6 +41,7 @@ namespace Tiny_muduo
 
             void send(const std::string& buf);
             void send(Buffer* buf);
+            void send(const void* message, size_t len);
             void sendFile(const int fd, const size_t count);
 
             void shutdown();                //关闭连接
@@ -69,7 +70,7 @@ namespace Tiny_muduo
             void setMessageCallback(const MessageCallback& cb) { _messageCallback = cb; }
             void setWriteCompleteCallback(const WriteCompleteCallback& cb) { _writeCompleteCallback = cb; }
             void setCloseCallback(const CloseCallback& cb) { _closeCallback = cb; }
-            void setHighWaterMarkCallback(const HighWaterMarkCallback& cb) { _highWaterMarkCallback = cb; }
+            void setHighWaterMarkCallback(const HighWaterMarkCallback& cb, size_t highWaterMark) { _highWaterMarkCallback = cb; _highWaterMark = highWaterMark;}
 
 
             void setContext(std::shared_ptr<void> context) { shared_context = context; }
