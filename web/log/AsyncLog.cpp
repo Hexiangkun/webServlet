@@ -39,18 +39,19 @@ namespace HLog
     }
 
     void AsyncLog::append(const char *buf, int len) {
+        //append会在多个线程中调用，需要加锁
         std::unique_lock<std::mutex> lock(_mutex);
-        if(_cur->available() > len) {
+        if(_cur->available() > len) {   //缓冲区足够，直接写入
             _cur->append(buf, len);
         }
         else {
+            //当前缓冲区不够，将新信息写入备用缓冲区
             _buffers.emplace_back(std::move(_cur));
             if(_next) {
                 _cur = std::move(_next);
             }
             else {
                 _cur.reset(new Buffer);
-//                _next.reset(new Buffer);
             }
             _cur->append(buf, len);
             _cond.notify_one();
@@ -70,6 +71,7 @@ namespace HLog
 
         while (_running) {
             {
+                //互斥锁保护，这样别的线程在这段时间就无法向前端buffer数组写入数据
                 std::unique_lock<std::mutex> lock(_mutex);
                 if(_buffers.empty()) {
                     _cond.wait_for(lock, std::chrono::milliseconds(_flush_interval));

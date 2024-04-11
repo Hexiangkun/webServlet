@@ -34,6 +34,8 @@ namespace Tiny_muduo
                         std::function<void()> task;
                         {
                             std::unique_lock<std::mutex> lock(task_mtx);
+                            //当调用 wait 后，线程会释放锁并进入阻塞状态，直到其他某个线程调用 notify_one 或 notify_all 方法唤醒它。
+                            //当前线程尽在pred=false时阻塞，如果pred=true时，不阻塞
                             cv.wait(lock, [this]() {
                                 return stop || !tasks_queue.empty();
                             });
