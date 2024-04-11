@@ -14,8 +14,8 @@ int main()
     HLog::Logger::setLogLevel(HLog::LogLevel::UNKONWN);
     int numThreads = 1;
     EventLoop loop;
-    HttpServer server(&loop, InetAddress(8000), "dummy");
-    //server.setThreadNum(1);
+    HttpServer server(&loop, InetAddress(9999), "dummy");
+    server.setThreadNum(1);
     server.addServlet("/", [](HttpRequest request, HttpResponse* response) {
         Index(request, response);
     });
